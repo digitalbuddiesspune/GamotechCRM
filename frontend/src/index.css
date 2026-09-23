@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+@media (min-width: 1024px) {
+  .sidebar-scrollbar-desktop-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .sidebar-scrollbar-desktop-hide::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
+  }
+}
