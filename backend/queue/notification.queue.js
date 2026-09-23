@@ -1,5 +1,6 @@
 import { Queue } from 'bullmq';
 import IORedis from 'ioredis';
+import { isRedisEnabled } from '../config/redis.js';
 import { QueueError } from '../utils/errors.js';
 import { toQueuePriority } from '../utils/fcmMessageBuilder.js';
 import logger from '../utils/logger.js';
@@ -36,6 +37,8 @@ const DEFAULT_JOB_OPTIONS = {
  * @returns {string | null}
  */
 export function getRedisUrl() {
+  if (!isRedisEnabled()) return null;
+
   const fromUrl = String(process.env.REDIS_URL || '').trim();
   if (fromUrl) return fromUrl;
 
