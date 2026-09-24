@@ -35,6 +35,30 @@ const AVATAR_COLORS = [
   'bg-cyan-100 text-cyan-700',
 ]
 
+const TeamMemberAvatar = ({ member, colorIndex = 0 }) => {
+  const [imgError, setImgError] = useState(false)
+  const photo = member?.profilePhoto
+  const showPhoto = Boolean(photo) && !imgError
+  const colorClass = AVATAR_COLORS[colorIndex % AVATAR_COLORS.length]
+
+  return (
+    <div
+      className={`relative w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold shrink-0 overflow-hidden border border-gray-200 ${showPhoto ? 'bg-gray-100' : colorClass}`}
+    >
+      {showPhoto ? (
+        <img
+          src={photo}
+          alt={member?.name || 'Team member'}
+          className='w-full h-full object-cover'
+          onError={() => setImgError(true)}
+        />
+      ) : (
+        initials(member?.name)
+      )}
+    </div>
+  )
+}
+
 const MyTeamView = () => {
   const { user } = useAuth()
   const navigate = useNavigate()
@@ -105,6 +129,7 @@ const MyTeamView = () => {
           name: e.name,
           email: e.email,
           phone: e.phone,
+          profilePhoto: e.profilePhoto || '',
           role: e.designation?.title || '—',
           department: e.department || e.designation?.department || '—',
           status,
@@ -222,11 +247,7 @@ const MyTeamView = () => {
                 <tr key={m.id} className='hover:bg-gray-50/60'>
                   <td className='px-4 py-3'>
                     <div className='flex items-center gap-3'>
-                      <div
-                        className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold shrink-0 ${AVATAR_COLORS[i % AVATAR_COLORS.length]}`}
-                      >
-                        {initials(m.name)}
-                      </div>
+                      <TeamMemberAvatar member={m} colorIndex={i} />
                       <div className='min-w-0'>
                         <p className='font-medium text-gray-900 truncate'>{m.name}</p>
                         <p className='text-xs text-gray-500 truncate'>{m.role}</p>
