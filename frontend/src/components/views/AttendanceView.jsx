@@ -7,6 +7,7 @@ import {
   getCurrentLocation,
   getMapsUrl,
   isCoordOnlyAddress,
+  geolocationErrorReason,
   locationErrorMessage,
   resolveAddressFromCoords,
 } from '../../utils/geolocation'
@@ -564,7 +565,7 @@ const AttendanceView = () => {
         setCurrentLocation((prev) => ({
           ...prev,
           loading: false,
-          error: locationErrorMessage(err?.code === 1 ? 'permission_denied' : err?.code === 3 ? 'timeout' : 'unavailable'),
+          error: locationErrorMessage(geolocationErrorReason(err)),
         }))
       },
       { enableHighAccuracy: false, maximumAge: 60000, timeout: 10000 }

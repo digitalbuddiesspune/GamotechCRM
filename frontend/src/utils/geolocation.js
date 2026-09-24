@@ -3,9 +3,38 @@ const NOMINATIM_HEADERS = {
   'User-Agent': 'MultiCRM-Attendance/1.0',
 }
 
-const GPS_FAST = { enableHighAccuracy: false, timeout: 3000, maximumAge: 60000 }
-const GPS_RETRY = { enableHighAccuracy: false, timeout: 7000, maximumAge: 60000 }
+/** Web Geolocation error codes: 1=denied, 2=unavailable (macOS kCLErrorLocationUnknown), 3=timeout */
+const GPS_ATTEMPTS = [
+  { enableHighAccuracy: false, timeout: 8000, maximumAge: 120000 },
+  { enableHighAccuracy: false, timeout: 15000, maximumAge: 300000 },
+  { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 },
+]
 const GEOCODE_TIMEOUT_MS = 2000
+
+export const geolocationErrorReason = (err) => {
+  if (err?.code === 1) return 'permission_denied'
+  if (err?.code === 3) return 'timeout'
+  if (err?.code === 2) return 'position_unavailable'
+  return 'unavailable'
+}
+
+const getPositionOnce = (options) =>
+  new Promise((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition(resolve, reject, options)
+  })
+
+const getPositionWithRetries = async () => {
+  let lastError = null
+  for (const options of GPS_ATTEMPTS) {
+    try {
+      return await getPositionOnce(options)
+    } catch (err) {
+      lastError = err
+      if (err?.code === 1) throw err
+    }
+  }
+  throw lastError || new Error('Location unavailable')
+}
 
 export const buildAddressFromNominatim = (data) => {
   const a = data?.address || {}
@@ -97,25 +126,11 @@ export const getCurrentLocation = (options = {}) => {
       })
     }
 
-    const onError = (err, retry) => {
-      const reason =
-        err?.code === 1 ? 'permission_denied' : err?.code === 3 ? 'timeout' : 'unavailable'
-      if (retry && reason !== 'permission_denied') {
-        navigator.geolocation.getCurrentPosition(
-          finish,
-          () => resolve({ failed: true, reason }),
-          GPS_RETRY
-        )
-        return
-      }
-      resolve({ failed: true, reason })
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      finish,
-      (err) => onError(err, true),
-      GPS_FAST
-    )
+    getPositionWithRetries()
+      .then(finish)
+      .catch((err) => {
+        resolve({ failed: true, reason: geolocationErrorReason(err) })
+      })
   })
 }
 
@@ -124,10 +139,13 @@ export const locationErrorMessage = (reason) => {
     return 'Location access denied. Allow location for this site in browser settings.'
   }
   if (reason === 'timeout') {
-    return 'Location request timed out. Ensure device GPS/location is on.'
+    return 'Location request timed out. Ensure device GPS/location is on, then try Refresh location.'
   }
   if (reason === 'unsupported') {
     return 'Your browser does not support location services.'
+  }
+  if (reason === 'position_unavailable' || reason === 'unavailable') {
+    return 'Could not determine your location. On Mac/iPhone: turn on Location Services, enable location for your browser, stay on Wi‑Fi, wait a few seconds, then tap Refresh location. (Console may show kCLErrorLocationUnknown — that is a temporary GPS/Wi‑Fi fix failure.)'
   }
   return 'Unable to detect current location. Enable GPS and try again.'
 }
