@@ -19,7 +19,6 @@ const attendanceSchema = new mongoose.Schema({
   checkInDeviceType: {
     type: String,
     enum: ['mobile', 'tablet', 'desktop'],
-    default: null,
   },
   checkInDevicePlatform: { type: String, default: '' },
   checkInDeviceBrowser: { type: String, default: '' },
@@ -48,6 +47,14 @@ const attendanceSchema = new mongoose.Schema({
     default: 'Absent',
   },
 }, { timestamps: true });
+
+/** Legacy rows may have checkInDeviceType: null; enum rejects null on save (e.g. checkout). */
+attendanceSchema.pre('validate', function normalizeOptionalDeviceFields(next) {
+  if (this.checkInDeviceType == null || this.checkInDeviceType === '') {
+    this.checkInDeviceType = undefined;
+  }
+  next();
+});
 
 const Attendance = mongoose.model('gamotechSolution_Attendance', attendanceSchema, 'adsresearchglobal_attendances');
 export default Attendance;
