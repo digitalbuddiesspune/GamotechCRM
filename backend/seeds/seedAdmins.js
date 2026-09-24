@@ -11,7 +11,7 @@ const companies = ['gamotechSolution'];
 
 const ADMIN = {
   name: 'Admin',
-  email: 'admin@gmail.com',
+  email: 'admin@gamotechsolutions.com',
   password: 'admin@2026',
   designationTitle: 'Admin',
   department: 'Administration',

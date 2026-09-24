@@ -17,6 +17,22 @@ const getTodayRange = () => {
   return { today, tomorrow };
 };
 
+const ALLOWED_DEVICE_TYPES = new Set(['mobile', 'tablet', 'desktop']);
+
+const sanitizeCheckInDevice = (body = {}) => {
+  const deviceType = String(body.deviceType || body.checkInDeviceType || '').trim().toLowerCase();
+  if (!ALLOWED_DEVICE_TYPES.has(deviceType)) return null;
+
+  const devicePlatform = String(body.devicePlatform || body.checkInDevicePlatform || '').trim().slice(0, 64);
+  const deviceBrowser = String(body.deviceBrowser || body.checkInDeviceBrowser || '').trim().slice(0, 64);
+
+  return {
+    checkInDeviceType: deviceType,
+    checkInDevicePlatform: devicePlatform,
+    checkInDeviceBrowser: deviceBrowser,
+  };
+};
+
 const appendLocationPoint = (attendance, { latitude, longitude, address, at = new Date(), minMove = 0.00025 }) => {
   if (!attendance) return;
   if (Number.isNaN(latitude) || Number.isNaN(longitude)) return;
@@ -69,6 +85,8 @@ export const checkIn = async (req, res) => {
     if (typeof address === 'string' && address.trim()) {
       checkInPayload.checkInAddress = address.trim();
     }
+    const device = sanitizeCheckInDevice(req.body);
+    if (device) Object.assign(checkInPayload, device);
 
     if (!attendance) {
       attendance = new Attendance({

@@ -11,6 +11,7 @@ import {
   resolveAddressFromCoords,
 } from '../../utils/geolocation'
 import { getLateAfterLabel, isLateCheckIn } from '../../utils/attendanceLate'
+import { formatCheckInDevice, getCheckInDeviceInfo } from '../../utils/deviceInfo'
 import { notifyBreakEndingSoon, notifyBreakStarted } from '../../utils/breakTimeAlert'
 
 const getDesignationTitle = (employee) =>
@@ -726,11 +727,15 @@ const AttendanceView = () => {
       }
       const address =
         location.address?.trim() || formatCoords(location.latitude, location.longitude)
+      const device = getCheckInDeviceInfo()
       const res = await api.post('/attendance/check-in', {
         employee: selectedEmployee,
         latitude: Number(location.latitude),
         longitude: Number(location.longitude),
         address,
+        deviceType: device.deviceType,
+        devicePlatform: device.devicePlatform,
+        deviceBrowser: device.deviceBrowser,
       })
       const checkIn = new Date(res.data.attendance?.checkIn || Date.now())
       setCheckInTime(checkIn)
@@ -1025,6 +1030,7 @@ const AttendanceView = () => {
       'Status',
       'Check In Location',
       'Check Out Location',
+      'Check In Device',
     ]
     const lines = fullMonthRows.map(({ dateKey, att, status, isFuture }) => {
       const dayName = new Date(`${dateKey}T12:00:00`).toLocaleDateString('en-IN', { weekday: 'short' })
@@ -1040,6 +1046,7 @@ const AttendanceView = () => {
         rowStatus,
         att?.checkInAddress || '',
         att?.checkOutAddress || '',
+        formatCheckInDevice(att),
       ].map(csvEscape).join(',')
     })
     const csv = `${headers.map(csvEscape).join(',')}\n${lines.join('\n')}`
@@ -1185,6 +1192,7 @@ const AttendanceView = () => {
                         <th className='px-5 py-3'>Check Out Time</th>
                         <th className='px-5 py-3'>Check In Location</th>
                         <th className='px-5 py-3'>Check Out Location</th>
+                        <th className='px-5 py-3'>Device</th>
                         <th className='px-5 py-3'>Status</th>
                         <th className='px-5 py-3'>Duration</th>
                       </tr>
@@ -1192,7 +1200,7 @@ const AttendanceView = () => {
                     <tbody className='divide-y divide-gray-100'>
                       {paginatedRows.length === 0 ? (
                         <tr>
-                          <td colSpan={7} className='px-5 py-12 text-center text-gray-500'>
+                          <td colSpan={8} className='px-5 py-12 text-center text-gray-500'>
                             No attendance records for {formatDateLabel(selectedDate)}
                           </td>
                         </tr>
@@ -1229,6 +1237,9 @@ const AttendanceView = () => {
                                 longitude={att?.checkOutLongitude}
                                 compact
                               />
+                            </td>
+                            <td className='px-5 py-3 text-gray-700 whitespace-nowrap'>
+                              {formatCheckInDevice(att)}
                             </td>
                             <td className='px-5 py-3'><StatusBadge status={status} /></td>
                             <td className='px-5 py-3'><DurationCell row={att} /></td>
@@ -1316,6 +1327,11 @@ const AttendanceView = () => {
                             compact
                           />
                         </div>
+                        {myDayAttendance?.checkInDeviceType && (
+                          <p className='mt-2 text-xs text-gray-500'>
+                            Device: {formatCheckInDevice(myDayAttendance)}
+                          </p>
+                        )}
                       </div>
                       <div className='p-3 rounded-lg bg-gray-50 border border-gray-100'>
                         <p className='text-xs text-gray-500 uppercase tracking-wide'>Check Out</p>
@@ -1574,13 +1590,14 @@ const AttendanceView = () => {
                     <th className='px-5 py-3'>Check Out Time</th>
                     <th className='px-5 py-3'>Check In Location</th>
                     <th className='px-5 py-3'>Check Out Location</th>
+                    <th className='px-5 py-3'>Device</th>
                     <th className='px-5 py-3'>Duration</th>
                     <th className='px-5 py-3'>Status</th>
                   </tr>
                 </thead>
                 <tbody className='divide-y divide-gray-100'>
                   {fullMonthRows.length === 0 ? (
-                    <tr><td colSpan={8} className='px-5 py-12 text-center text-gray-500'>No records for {monthLabel}</td></tr>
+                    <tr><td colSpan={9} className='px-5 py-12 text-center text-gray-500'>No records for {monthLabel}</td></tr>
                   ) : (
                     fullMonthRows.map(({ dateKey, att, status, isFuture }) => (
                       <tr key={dateKey} className={`hover:bg-gray-50/80 ${isFuture ? 'opacity-50' : ''}`}>
@@ -1607,6 +1624,9 @@ const AttendanceView = () => {
                             longitude={att?.checkOutLongitude}
                             compact
                           />
+                        </td>
+                        <td className='px-5 py-3 text-gray-700 whitespace-nowrap'>
+                          {formatCheckInDevice(att)}
                         </td>
                         <td className='px-5 py-3'><DurationCell row={att} /></td>
                         <td className='px-5 py-3'>

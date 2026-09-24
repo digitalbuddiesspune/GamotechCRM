@@ -16,6 +16,13 @@ const attendanceSchema = new mongoose.Schema({
   checkInLatitude: { type: Number },
   checkInLongitude: { type: Number },
   checkInAddress: { type: String },
+  checkInDeviceType: {
+    type: String,
+    enum: ['mobile', 'tablet', 'desktop'],
+    default: null,
+  },
+  checkInDevicePlatform: { type: String, default: '' },
+  checkInDeviceBrowser: { type: String, default: '' },
   locationTimeline: [{
     at: { type: Date, default: Date.now },
     latitude: { type: Number },
