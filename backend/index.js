@@ -131,6 +131,7 @@ const routeFiles = [
   'notificationRoute',
   'announcementRoute',
   'adsWebhookRoute',
+  'metaCampaignRoute',
 ];
 
 for (const company of companies) {

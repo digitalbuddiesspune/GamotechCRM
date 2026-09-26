@@ -53,6 +53,31 @@ export const getLeadCampaignMeta = (lead) => {
   }
 }
 
+/** Map imported sheet row → lead-like shape for campaign grouping. */
+export const mapSheetLeadForCampaigns = (sheet) => ({
+  _id: sheet._id,
+  campaignName: sheet.campaignName,
+  campaignId: sheet.campaignId,
+  adPlatform: 'meta',
+  leadSource: sheet.platform ? `Meta Ads (${sheet.platform})` : 'Google Sheet Import',
+  description: sheet.campaignName ? `Campaign: ${sheet.campaignName}` : '',
+  status: 'Call not Received',
+  createdAt: sheet.createdTime || sheet.importedAt,
+  updatedAt: sheet.importedAt,
+})
+
+/** Avoid double-counting sheet rows already linked to a CRM lead. */
+export const mergeLeadsForCampaigns = (crmLeads = [], sheetLeads = []) => {
+  const crmIds = new Set(crmLeads.map((l) => String(l._id)))
+  const fromSheet = sheetLeads
+    .filter((s) => {
+      const linked = s.crmLead?._id || s.crmLead
+      return !linked || !crmIds.has(String(linked))
+    })
+    .map(mapSheetLeadForCampaigns)
+  return [...crmLeads, ...fromSheet]
+}
+
 export const buildCampaignSummaries = (leads = []) => {
   const map = new Map()
 

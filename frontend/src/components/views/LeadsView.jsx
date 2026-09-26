@@ -178,7 +178,12 @@ const LeadsView = () => {
 
   const leadsAfterCampaignFilter = useMemo(() => {
     if (!campaignFilter) return leads
-    return leads.filter((l) => getLeadCampaignMeta(l).groupKey === campaignFilter)
+    return leads.filter((l) => {
+      const meta = getLeadCampaignMeta(l)
+      if (meta.groupKey === campaignFilter) return true
+      if (meta.campaignId && String(meta.campaignId) === campaignFilter) return true
+      return false
+    })
   }, [leads, campaignFilter])
 
   const campaignGroups = useMemo(() => {
