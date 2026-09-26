@@ -13,13 +13,30 @@ const pick = (...values) => {
 export const getMetaAccessToken = () =>
   pick(process.env.GAMOTECH_META_PAGE_ACCESS_TOKEN, process.env.META_PAGE_ACCESS_TOKEN);
 
-export const getMetaAdAccountId = () =>
-  pick(process.env.GAMOTECH_META_AD_ACCOUNT_ID, process.env.META_AD_ACCOUNT_ID);
-
-const normalizeAdAccountId = (id) => {
+export const normalizeAdAccountId = (id) => {
   const raw = String(id || '').trim();
   if (!raw) return '';
   return raw.startsWith('act_') ? raw : `act_${raw}`;
+};
+
+/** Single ad account override (optional). Prefer leaving empty to load all accessible accounts. */
+export const getMetaAdAccountId = () =>
+  pick(process.env.GAMOTECH_META_AD_ACCOUNT_ID, process.env.META_AD_ACCOUNT_ID);
+
+/**
+ * Optional comma/space-separated act IDs when /me/adaccounts is unavailable.
+ * Example: act_111,act_222,act_333
+ */
+export const getConfiguredAdAccountIds = () => {
+  const list = pick(process.env.GAMOTECH_META_AD_ACCOUNT_IDS, process.env.META_AD_ACCOUNT_IDS);
+  if (list) {
+    return list
+      .split(/[\s,]+/)
+      .map((id) => normalizeAdAccountId(id))
+      .filter(Boolean);
+  }
+  const single = getMetaAdAccountId();
+  return single ? [normalizeAdAccountId(single)] : null;
 };
 
 /** @param {string} path - e.g. "me/adaccounts" or "act_123/campaigns" */
@@ -85,6 +102,44 @@ export async function listCampaignsForAdAccount(adAccountId, accessToken) {
 }
 
 /** Resolve campaign metadata when only IDs are known (from webhook leads). */
+/** Fetch campaigns for many ad accounts (parallel workers). */
+export async function listCampaignsForAdAccounts(accounts, accessToken, concurrency = 6) {
+  const list = Array.isArray(accounts) ? [...accounts] : [];
+  const results = [];
+  let index = 0;
+
+  const worker = async () => {
+    while (index < list.length) {
+      const current = list[index];
+      index += 1;
+      const accountId = current.account_id || current.id;
+      const actId = normalizeAdAccountId(accountId);
+      if (!actId) continue;
+      try {
+        const rows = await listCampaignsForAdAccount(actId, accessToken);
+        for (const row of rows) {
+          results.push({
+            ...row,
+            adAccountId: actId,
+            adAccountName: current.name || actId,
+          });
+        }
+      } catch (err) {
+        results.push({
+          __error: true,
+          adAccountId: actId,
+          adAccountName: current.name || actId,
+          message: err?.message || 'Failed to load campaigns',
+        });
+      }
+    }
+  };
+
+  const workers = Math.min(Math.max(1, concurrency), 10);
+  await Promise.all(Array.from({ length: workers }, () => worker()));
+  return results;
+}
+
 export async function fetchCampaignsByIds(campaignIds, accessToken) {
   const ids = [...new Set(campaignIds.map((id) => String(id || '').trim()).filter(Boolean))];
   if (!ids.length) return [];

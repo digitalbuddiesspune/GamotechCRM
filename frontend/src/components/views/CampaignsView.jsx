@@ -29,6 +29,8 @@ const formatBudget = (value) => {
 const CampaignsView = () => {
   const navigate = useNavigate()
   const [campaigns, setCampaigns] = useState([])
+  const [adAccounts, setAdAccounts] = useState([])
+  const [selectedAdAccount, setSelectedAdAccount] = useState('')
   const [metaInfo, setMetaInfo] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -39,8 +41,10 @@ const CampaignsView = () => {
       try {
         setLoading(true)
         setError(null)
-        const res = await api.get('/meta/campaigns')
+        const params = selectedAdAccount ? { adAccount: selectedAdAccount } : {}
+        const res = await api.get('/meta/campaigns', { params })
         setCampaigns(Array.isArray(res.data?.campaigns) ? res.data.campaigns : [])
+        setAdAccounts(Array.isArray(res.data?.adAccounts) ? res.data.adAccounts : [])
         setMetaInfo(res.data?.meta || null)
       } catch (err) {
         setError(err.response?.data?.message || err.message || 'Failed to load Meta campaigns')
@@ -50,7 +54,7 @@ const CampaignsView = () => {
       }
     }
     load()
-  }, [])
+  }, [selectedAdAccount])
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -118,17 +122,30 @@ const CampaignsView = () => {
       {metaInfo && !loading && !error ? (
         <p className='text-xs text-gray-500 mb-3'>
           Graph mode: {metaInfo.fetchMode}
-          {metaInfo.adAccountsUsed?.length ? ` · Ad account(s): ${metaInfo.adAccountsUsed.join(', ')}` : ''}
+          {metaInfo.adAccountCount != null ? ` · Ad accounts: ${metaInfo.adAccountCount}` : ''}
+          {metaInfo.hint ? ` · ${metaInfo.hint}` : ''}
         </p>
       ) : null}
 
-      <div className='mb-4'>
+      <div className='mb-4 flex flex-col sm:flex-row gap-3'>
+        <select
+          value={selectedAdAccount}
+          onChange={(e) => setSelectedAdAccount(e.target.value)}
+          className='border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white min-w-[220px] focus:outline-none focus:ring-2 focus:ring-purple-500'
+        >
+          <option value=''>All ad accounts ({adAccounts.length})</option>
+          {adAccounts.map((acc) => (
+            <option key={acc.id} value={acc.id}>
+              {acc.name} ({acc.id})
+            </option>
+          ))}
+        </select>
         <input
           type='text'
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder='Search Meta campaign name or ID…'
-          className='w-full max-w-md border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-purple-500'
+          className='flex-1 max-w-md border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-purple-500'
         />
       </div>
 
@@ -140,7 +157,9 @@ const CampaignsView = () => {
           <ul className='list-disc pl-5 space-y-1 text-gray-700'>
             <li>Set <code className='text-xs bg-gray-100 px-1'>META_PAGE_ACCESS_TOKEN</code> on the production backend.</li>
             <li>Token needs <strong>ads_read</strong> (and often <strong>leads_retrieval</strong> for webhooks).</li>
-            <li>Add <code className='text-xs bg-gray-100 px-1'>META_AD_ACCOUNT_ID=act_…</code> if <code className='text-xs'>/me/adaccounts</code> fails.</li>
+            <li>Leave <code className='text-xs bg-gray-100 px-1'>META_AD_ACCOUNT_ID</code> empty for all client accounts (100+).</li>
+            <li>Use a Business Manager <strong>System User</strong> token with access to all client ad accounts.</li>
+            <li>Only if needed: <code className='text-xs bg-gray-100 px-1'>META_AD_ACCOUNT_IDS=act_1,act_2,…</code></li>
             <li>Deploy the latest backend with route <code className='text-xs bg-gray-100 px-1'>GET /meta/campaigns</code>.</li>
           </ul>
         </div>
@@ -164,7 +183,13 @@ const CampaignsView = () => {
                 <div className='flex flex-wrap justify-between items-start gap-3 mb-4'>
                   <div className='min-w-0'>
                     <h3 className='text-lg font-bold text-gray-900'>{campaign.name}</h3>
-                    <p className='text-xs text-gray-500 mt-1 font-mono'>ID: {campaign.id}</p>
+                    <p className='text-xs text-gray-500 mt-1 font-mono'>Campaign ID: {campaign.id}</p>
+                    {campaign.adAccountName ? (
+                      <p className='text-xs text-gray-500 mt-0.5'>
+                        Ad account: {campaign.adAccountName}
+                        {campaign.adAccountId ? ` (${campaign.adAccountId})` : ''}
+                      </p>
+                    ) : null}
                     {campaign.objective ? (
                       <p className='text-sm text-gray-600 mt-1'>Objective: {campaign.objective}</p>
                     ) : null}
