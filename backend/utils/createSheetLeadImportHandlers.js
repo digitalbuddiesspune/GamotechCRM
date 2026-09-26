@@ -52,6 +52,7 @@ export function createSheetLeadImportHandlers({
       externalLeadId: row.metaLeadId || '',
       adPlatform: 'meta',
       campaignId: row.campaignId || '',
+      campaignName: row.campaignName || '',
       adId: row.adId || '',
       formId: row.formId || '',
       email: '',
