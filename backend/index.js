@@ -130,6 +130,7 @@ const routeFiles = [
   'assetRoute',
   'notificationRoute',
   'announcementRoute',
+  'adsWebhookRoute',
 ];
 
 for (const company of companies) {
