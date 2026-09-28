@@ -1,3 +1,5 @@
+import { resolveMetaAccessToken } from './metaTokenService.js';
+
 /**
  * Meta + Google Ads lead form webhooks → CRM Lead.
  *
@@ -166,8 +168,11 @@ export function createAdsWebhookHandlers({ Lead, Employee, tenantKey }) {
     return fallback?._id || null;
   };
 
-  const getMetaToken = () =>
-    pick(process.env[envKeys.metaToken], process.env.META_PAGE_ACCESS_TOKEN);
+  const getMetaToken = async () => {
+    const fromDbOrEnv = await resolveMetaAccessToken();
+    if (fromDbOrEnv) return fromDbOrEnv;
+    return pick(process.env[envKeys.metaToken], process.env.META_PAGE_ACCESS_TOKEN);
+  };
 
   const getGoogleKey = () =>
     pick(process.env[envKeys.googleKey], process.env.GOOGLE_ADS_WEBHOOK_KEY);
@@ -266,7 +271,7 @@ export function createAdsWebhookHandlers({ Lead, Employee, tenantKey }) {
     try {
       // Acknowledge quickly-friendly: process then respond (sync is fine for CRM volume)
       const body = req.body || {};
-      const accessToken = getMetaToken();
+      const accessToken = await getMetaToken();
 
       // Direct / Zapier-style Meta payload (already has field_data or flat fields)
       if (body.field_data || body.leadgen_id || body.id || body.name || body.phone || body.phone_number) {

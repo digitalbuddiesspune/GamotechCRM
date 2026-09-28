@@ -3,11 +3,16 @@ import SheetLead from '../../models/gamotechSolution/gamotechSolution_sheetLead.
 import {
   fetchCampaignsByIds,
   getConfiguredAdAccountIds,
-  getMetaAccessToken,
   listAdAccounts,
   listCampaignsForAdAccounts,
   normalizeAdAccountId,
 } from '../../utils/metaGraphApi.js';
+import {
+  getMetaTokenStorageInfo,
+  inspectMetaAccessToken,
+  resolveMetaAccessToken,
+  saveMetaAccessToken,
+} from '../../utils/metaTokenService.js';
 
 const buildLeadStatsByCampaignId = async () => {
   const stats = new Map();
@@ -111,11 +116,11 @@ const toAdAccountOption = (account) => {
 
 export const getMetaCampaigns = async (req, res) => {
   try {
-    const accessToken = getMetaAccessToken();
+    const accessToken = await resolveMetaAccessToken();
     if (!accessToken) {
       return res.status(503).json({
         message:
-          'Meta access token missing. Set META_PAGE_ACCESS_TOKEN or GAMOTECH_META_PAGE_ACCESS_TOKEN in backend .env',
+          'Meta access token missing. Add it in Settings → Meta integration or set META_PAGE_ACCESS_TOKEN in backend .env',
       });
     }
 
@@ -197,6 +202,56 @@ export const getMetaCampaigns = async (req, res) => {
     return res.status(error.status || 500).json({
       message: error.message || 'Failed to load Meta campaigns',
       details: error.details,
+    });
+  }
+};
+
+export const getMetaTokenStatus = async (req, res) => {
+  try {
+    const storage = await getMetaTokenStorageInfo();
+    const token = await resolveMetaAccessToken();
+    const inspection = await inspectMetaAccessToken(token);
+    return res.status(200).json({
+      storage,
+      inspection,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: error.message || 'Failed to inspect Meta token',
+    });
+  }
+};
+
+export const updateMetaToken = async (req, res) => {
+  try {
+    const accessToken = String(req.body?.accessToken || '').trim();
+    const note = String(req.body?.note || '').trim();
+    if (!accessToken) {
+      return res.status(400).json({ message: 'accessToken is required' });
+    }
+
+    const inspection = await inspectMetaAccessToken(accessToken);
+    if (!inspection.valid) {
+      return res.status(400).json({
+        message: inspection.message || 'Token is not valid',
+        details: inspection.details,
+      });
+    }
+
+    const storage = await saveMetaAccessToken({
+      accessToken,
+      expiresAt: inspection.expiresAt,
+      note,
+    });
+
+    return res.status(200).json({
+      message: 'Meta access token saved in CRM',
+      storage,
+      inspection,
+    });
+  } catch (error) {
+    return res.status(error.status || 500).json({
+      message: error.message || 'Failed to save Meta token',
     });
   }
 };

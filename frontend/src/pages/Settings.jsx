@@ -1,9 +1,10 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import MetaIntegrationSettings from '../components/MetaIntegrationSettings'
 
 const Settings = () => {
-  const { user } = useAuth()
+  const { user, hasFullAccess } = useAuth()
   const navigate = useNavigate()
 
   const formatDate = (d) => {
@@ -71,6 +72,8 @@ const Settings = () => {
           ))}
         </div>
       </div>
+
+      {hasFullAccess() ? <MetaIntegrationSettings /> : null}
     </div>
   )
 }

@@ -10,6 +10,7 @@ const pick = (...values) => {
   return '';
 };
 
+/** @deprecated Use resolveMetaAccessToken() from metaTokenService.js (async, DB + env). */
 export const getMetaAccessToken = () =>
   pick(process.env.GAMOTECH_META_PAGE_ACCESS_TOKEN, process.env.META_PAGE_ACCESS_TOKEN);
 

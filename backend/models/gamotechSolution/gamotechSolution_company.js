@@ -23,6 +23,11 @@ const companySchema = new mongoose.Schema({
     bankName: { type: String, default: '' },
     bankAccountNumber: { type: String, default: '' },
   }],
+  /** Meta Graph API token (prefer System User non-expiring token). Overrides .env when set. */
+  metaPageAccessToken: { type: String, default: '', select: false },
+  metaTokenExpiresAt: { type: Date, default: null },
+  metaTokenUpdatedAt: { type: Date, default: null },
+  metaTokenNote: { type: String, default: '' },
 }, { timestamps: true });
 
 const Company = mongoose.model('gamotechSolution_Company', companySchema, 'adsresearchglobal_companies');
