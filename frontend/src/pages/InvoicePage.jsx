@@ -4,6 +4,8 @@ import { useParams, useNavigate } from 'react-router-dom'
 import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
 
+const LOGO_SRC = '/logo.png'
+
 const InvoicePage = () => {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -67,6 +69,12 @@ const InvoicePage = () => {
     setDownloading(true)
     setDownloadError(null)
     try {
+      await Promise.all(
+        Array.from(element.querySelectorAll('img')).map((img) =>
+          img.complete ? Promise.resolve() : new Promise((resolve) => { img.onload = resolve; img.onerror = resolve })
+        )
+      )
+
       // In production, CSS is often loaded via <link>; fetch and strip oklch so the clone never parses it
       let strippedLinkedCss = ''
       const links = document.querySelectorAll('link[rel="stylesheet"]')
@@ -84,6 +92,7 @@ const InvoicePage = () => {
         allowTaint: true,
         backgroundColor: '#ffffff',
         logging: false,
+        windowWidth: element.scrollWidth,
         onclone: (clonedDoc, clonedElement) => {
           // Strip oklch from inline <style> tags
           clonedDoc.querySelectorAll('style').forEach((style) => {
@@ -109,18 +118,21 @@ const InvoicePage = () => {
       const imgWidth = 210
       const pageHeight = 297
       const imgHeight = (canvas.height * imgWidth) / canvas.width
-      let heightLeft = imgHeight
-      let position = 0
       const pdf = new jsPDF('p', 'mm', 'a4')
       const imgData = canvas.toDataURL('image/jpeg', 0.95)
-      if (heightLeft <= pageHeight) {
-        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight)
+      // Sub-pixel rounding can make a one-page sheet slightly taller than 297mm; avoid a blank 2nd page.
+      if (imgHeight <= pageHeight + 2) {
+        pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, Math.min(imgHeight, pageHeight))
       } else {
+        let heightLeft = imgHeight
+        let position = 0
+        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight)
+        heightLeft -= pageHeight
         while (heightLeft > 0) {
+          position -= pageHeight
+          pdf.addPage()
           pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight)
           heightLeft -= pageHeight
-          position = heightLeft - imgHeight
-          if (heightLeft > 0) pdf.addPage()
         }
       }
       const filename = `invoice-${(billing?.company?.name || 'bill').replace(/\s+/g, '-')}-${id}.pdf`
@@ -206,31 +218,35 @@ const InvoicePage = () => {
         </div>
       )}
 
-      <div ref={printRef} className='p-6 md:p-10 w-full'>
-        {/* Invoice content - printable and for PDF */}
-        <div ref={invoiceRef} className='border border-gray-200 rounded-lg overflow-hidden bg-white'>
-          {/* Company logo at top center */}
-          {billing.companyLogo && (
-            <div className='flex justify-center pt-6 pb-2'>
-              <img src={billing.companyLogo} alt='Company logo' className='h-20 w-auto max-w-[200px] object-contain' />
-            </div>
-          )}
-          <div className='px-6 py-4 border-b border-gray-200'>
-            <div className='flex flex-wrap items-baseline justify-between gap-4'>
-              <div>
-                <h1 className='text-2xl font-bold text-black'>INVOICE</h1>
-                <p className='text-sm text-black mt-1'>
-                  {isGst ? 'Tax Invoice (GST)' : 'Bill (Non-GST)'} • {billing.createdAt ? new Date(billing.createdAt).toLocaleDateString() : '—'}
-                </p>
-              </div>
+      <style>{`
+        @media print {
+          @page { size: A4; margin: 0; }
+          html, body { background: #ffffff !important; }
+        }
+      `}</style>
+
+      <div ref={printRef} className='bg-gray-100 py-8 px-4 overflow-x-auto print:bg-white print:p-0'>
+        {/* A4 sheet: fixed 210mm width so the PDF is never stretched to the browser width */}
+        <div
+          ref={invoiceRef}
+          className='mx-auto bg-white shadow-lg print:shadow-none flex flex-col'
+          style={{ width: '210mm', minHeight: '297mm' }}
+        >
+          <div className='px-8 pt-8 pb-5 border-b-2 border-gray-800'>
+            <div className='flex items-start justify-between gap-6'>
+              <img src={LOGO_SRC} alt='Gamotech Solutions' className='h-16 w-auto object-contain' />
               <div className='text-right'>
-                <p className='text-sm text-black'><span className='font-semibold'>Invoice No:</span> {billing.invoiceNumber || `Gamo-${getFYDisplay(billing.createdAt)}-001`}</p>
-                <p className='text-sm text-black mt-0.5'><span className='font-semibold'>Financial Year:</span> {getFYDisplay(billing.createdAt)}</p>
+                <h1 className='text-3xl font-bold tracking-wide text-black'>INVOICE</h1>
+                <p className='text-xs text-black mt-1'>
+                  {isGst ? 'Tax Invoice (GST)' : 'Bill (Non-GST)'} • {billing.createdAt ? new Date(billing.createdAt).toLocaleDateString('en-IN') : '—'}
+                </p>
+                <p className='text-xs text-black mt-2'><span className='font-semibold'>Invoice No:</span> {billing.invoiceNumber || `Gamo-${getFYDisplay(billing.createdAt)}-001`}</p>
+                <p className='text-xs text-black mt-0.5'><span className='font-semibold'>Financial Year:</span> {getFYDisplay(billing.createdAt)}</p>
               </div>
             </div>
           </div>
 
-          <div className='p-6 grid grid-cols-1 md:grid-cols-2 gap-8'>
+          <div className='px-8 py-6 grid grid-cols-2 gap-8'>
             {/* From / Company */}
             <div>
               <h2 className='text-xs font-semibold text-black uppercase tracking-wider mb-2'>From</h2>
@@ -268,7 +284,7 @@ const InvoicePage = () => {
           </div>
 
           {/* Projects / Items */}
-          <div className='px-6 pb-6'>
+          <div className='px-8 pb-6'>
             <h2 className='text-xs font-semibold text-black uppercase tracking-wider mb-3'>Project Details</h2>
             <table className='w-full text-sm border border-gray-400'>
               <thead>
@@ -341,7 +357,7 @@ const InvoicePage = () => {
 
           {/* GST breakdown (when GST bill) */}
           {isGst && (taxableValue != null || invoiceAmount != null) && (
-            <div className='px-6 pb-4'>
+            <div className='px-8 pb-4'>
               <h2 className='text-xs font-semibold text-black uppercase tracking-wider mb-2'>GST Breakdown</h2>
               <table className='w-full max-w-xs text-sm border border-gray-400'>
                 <tbody>
@@ -363,7 +379,7 @@ const InvoicePage = () => {
           )}
 
           {/* Payment / Amount */}
-          <div className='px-6 pb-6'>
+          <div className='px-8 pb-6'>
             <h2 className='text-xs font-semibold text-black uppercase tracking-wider mb-3'>Payment Details</h2>
             <div className='flex flex-wrap items-end justify-between gap-4'>
               <div className='space-y-1 text-sm'>
@@ -383,13 +399,13 @@ const InvoicePage = () => {
           </div>
 
           {billing.termsAndConditions && (
-            <div className='px-6 pb-4'>
+            <div className='px-8 pb-4'>
               <h2 className='text-xs font-semibold text-black uppercase tracking-wider mb-2'>Terms & Conditions</h2>
               <p className='text-sm text-black whitespace-pre-wrap'>{billing.termsAndConditions}</p>
             </div>
           )}
 
-          <div className='px-6 pb-6 flex justify-end'>
+          <div className='px-8 pt-6 pb-6 mt-auto flex justify-end'>
             <div className='text-center'>
               {billing.authorizedSignature ? (
                 <>
@@ -405,7 +421,7 @@ const InvoicePage = () => {
             </div>
           </div>
 
-          <div className='px-6 py-4 border-t border-gray-300 text-center text-sm text-black font-medium'>
+          <div className='px-8 py-4 border-t border-gray-300 text-center text-sm text-black font-medium'>
             Thank you for your business.
           </div>
         </div>
