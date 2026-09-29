@@ -15,6 +15,7 @@ const emptyProfile = () => ({
   email: '',
   bankName: '',
   bankAccountNumber: '',
+  ifscCode: '',
   personalAccounts: [],
 });
 

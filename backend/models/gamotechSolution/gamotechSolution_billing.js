@@ -50,6 +50,7 @@ const billingSchema = new mongoose.Schema({
     receiverName: { type: String, default: '' },
     receiverBankAccount: { type: String, default: '' },
     receiverBankName: { type: String, default: '' },
+    receiverIfscCode: { type: String, default: '', uppercase: true, trim: true },
     modeOfTransaction: { type: String, default: '' },
   },
 }, { timestamps: true });

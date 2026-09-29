@@ -21,8 +21,12 @@ const EMPTY_FORM = {
   email: '',
   bankName: '',
   bankAccountNumber: '',
-  personalAccounts: [{ receiverName: '', bankName: '', bankAccountNumber: '' }],
+  ifscCode: '',
+  personalAccounts: [{ receiverName: '', bankName: '', bankAccountNumber: '', ifscCode: '' }],
 }
+
+const IFSC_PATTERN = /^[A-Z]{4}0[A-Z0-9]{6}$/
+const isValidIfsc = (value) => !value || IFSC_PATTERN.test(value)
 
 const CompanyProfilePage = () => {
   const navigate = useNavigate()
@@ -59,13 +63,15 @@ const CompanyProfilePage = () => {
           email: c.email ?? '',
           bankName: c.bankName ?? '',
           bankAccountNumber: c.bankAccountNumber ?? '',
+          ifscCode: c.ifscCode ?? '',
           personalAccounts: Array.isArray(c.personalAccounts) && c.personalAccounts.length > 0
             ? c.personalAccounts.map((a) => ({
                 receiverName: a.receiverName ?? '',
                 bankName: a.bankName ?? '',
                 bankAccountNumber: a.bankAccountNumber ?? '',
+                ifscCode: a.ifscCode ?? '',
               }))
-            : [{ receiverName: '', bankName: '', bankAccountNumber: '' }],
+            : [{ receiverName: '', bankName: '', bankAccountNumber: '', ifscCode: '' }],
         })
       } catch (err) {
         setError(err.response?.data?.message || err.message || 'Error loading company profile')
@@ -78,7 +84,8 @@ const CompanyProfilePage = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target
-    setForm((f) => ({ ...f, [name]: value }))
+    const next = name === 'ifscCode' ? value.toUpperCase() : value
+    setForm((f) => ({ ...f, [name]: next }))
     setSuccess(null)
   }
 
@@ -92,7 +99,7 @@ const CompanyProfilePage = () => {
   const addPersonalAccount = () => {
     setForm((f) => ({
       ...f,
-      personalAccounts: [...f.personalAccounts, { receiverName: '', bankName: '', bankAccountNumber: '' }],
+      personalAccounts: [...f.personalAccounts, { receiverName: '', bankName: '', bankAccountNumber: '', ifscCode: '' }],
     }))
   }
 
@@ -107,7 +114,7 @@ const CompanyProfilePage = () => {
     setForm((f) => ({
       ...f,
       personalAccounts: f.personalAccounts.map((acc, i) =>
-        i === index ? { ...acc, [field]: value } : acc
+        i === index ? { ...acc, [field]: field === 'ifscCode' ? value.toUpperCase() : value } : acc
       ),
     }))
     setSuccess(null)
@@ -157,14 +164,22 @@ const CompanyProfilePage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setSaving(true)
     setError(null)
     setSuccess(null)
+    const invalidIfsc = [form.ifscCode, ...form.personalAccounts.map((a) => a.ifscCode)]
+      .find((code) => !isValidIfsc(code))
+    if (invalidIfsc) {
+      setError(`Invalid IFSC code "${invalidIfsc}". Format: 4 letters, 0, then 6 letters/digits (e.g. HDFC0001234).`)
+      return
+    }
+    setSaving(true)
     try {
       const payload = {
         ...form,
         breakTimeMinutes: Number(form.breakTimeMinutes) || 45,
-        personalAccounts: form.personalAccounts.filter((a) => a.receiverName || a.bankName || a.bankAccountNumber),
+        personalAccounts: form.personalAccounts.filter(
+          (a) => a.receiverName || a.bankName || a.bankAccountNumber || a.ifscCode
+        ),
       }
       if (payload.personalAccounts.length === 0) payload.personalAccounts = []
       const res = await api.put('/company-profile', payload)
@@ -365,7 +380,7 @@ const CompanyProfilePage = () => {
             <div className='p-5 space-y-5'>
               <div>
                 <h3 className='text-sm font-semibold text-gray-800 mb-3'>Company account (GST bills)</h3>
-                <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
+                <div className='grid grid-cols-1 sm:grid-cols-3 gap-4'>
                   <div>
                     <label className='block text-sm font-medium text-gray-700'>Bank Name</label>
                     <input name='bankName' value={form.bankName} onChange={handleChange} className={inputClass} />
@@ -373,6 +388,17 @@ const CompanyProfilePage = () => {
                   <div>
                     <label className='block text-sm font-medium text-gray-700'>Bank Account Number</label>
                     <input name='bankAccountNumber' value={form.bankAccountNumber} onChange={handleChange} className={inputClass} />
+                  </div>
+                  <div>
+                    <label className='block text-sm font-medium text-gray-700'>IFSC Code</label>
+                    <input
+                      name='ifscCode'
+                      value={form.ifscCode}
+                      onChange={handleChange}
+                      maxLength={11}
+                      placeholder='e.g. HDFC0001234'
+                      className={`${inputClass} uppercase`}
+                    />
                   </div>
                 </div>
               </div>
@@ -395,7 +421,7 @@ const CompanyProfilePage = () => {
                           </button>
                         )}
                       </div>
-                      <div className='grid grid-cols-1 sm:grid-cols-3 gap-3'>
+                      <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3'>
                         <div>
                           <label className='block text-xs font-medium text-gray-600'>Receiver / Account holder</label>
                           <input value={acc.receiverName} onChange={(e) => handlePersonalAccountChange(index, 'receiverName', e.target.value)} className={inputClass} />
@@ -407,6 +433,16 @@ const CompanyProfilePage = () => {
                         <div>
                           <label className='block text-xs font-medium text-gray-600'>Account Number</label>
                           <input value={acc.bankAccountNumber} onChange={(e) => handlePersonalAccountChange(index, 'bankAccountNumber', e.target.value)} className={inputClass} />
+                        </div>
+                        <div>
+                          <label className='block text-xs font-medium text-gray-600'>IFSC Code</label>
+                          <input
+                            value={acc.ifscCode}
+                            onChange={(e) => handlePersonalAccountChange(index, 'ifscCode', e.target.value)}
+                            maxLength={11}
+                            placeholder='e.g. SBIN0001234'
+                            className={`${inputClass} uppercase`}
+                          />
                         </div>
                       </div>
                     </div>

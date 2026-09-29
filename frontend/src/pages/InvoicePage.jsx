@@ -376,6 +376,7 @@ const InvoicePage = () => {
                 {payment.receiverName && <p className='text-black'><span className='font-medium'>Receiver:</span> {payment.receiverName}</p>}
                 {payment.receiverBankName && <p className='text-black'><span className='font-medium'>Bank:</span> {payment.receiverBankName}</p>}
                 {payment.receiverBankAccount && <p className='text-black'><span className='font-medium'>Account:</span> {payment.receiverBankAccount}</p>}
+                {payment.receiverIfscCode && <p className='text-black'><span className='font-medium'>IFSC:</span> {payment.receiverIfscCode}</p>}
                 {payment.modeOfTransaction && <p className='text-black'><span className='font-medium'>Mode:</span> {payment.modeOfTransaction}</p>}
               </div>
             </div>

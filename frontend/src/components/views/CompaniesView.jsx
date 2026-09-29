@@ -209,6 +209,7 @@ const CompaniesView = () => {
                 <DetailRow label='State'>{viewCompany.state}</DetailRow>
                 <DetailRow label='Bank name'>{viewCompany.bankName}</DetailRow>
                 <DetailRow label='Bank account number'>{viewCompany.bankAccountNumber}</DetailRow>
+                <DetailRow label='IFSC code'>{viewCompany.ifscCode}</DetailRow>
                 {Array.isArray(viewCompany.personalAccounts) && viewCompany.personalAccounts.length > 0 && (
                   <div className='pt-3'>
                     <p className='text-xs font-semibold text-gray-500 uppercase mb-2'>Personal accounts</p>
@@ -218,6 +219,7 @@ const CompaniesView = () => {
                           <p><span className='text-gray-500'>Receiver:</span> {pa.receiverName || '—'}</p>
                           <p><span className='text-gray-500'>Bank:</span> {pa.bankName || '—'}</p>
                           <p><span className='text-gray-500'>Account:</span> {pa.bankAccountNumber || '—'}</p>
+                          <p><span className='text-gray-500'>IFSC:</span> {pa.ifscCode || '—'}</p>
                         </li>
                       ))}
                     </ul>

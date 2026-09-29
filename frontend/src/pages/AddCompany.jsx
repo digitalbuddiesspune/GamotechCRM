@@ -21,7 +21,8 @@ const AddCompany = () => {
     email: '',
     bankName: '',
     bankAccountNumber: '',
-    personalAccounts: [{ receiverName: '', bankName: '', bankAccountNumber: '' }],
+    ifscCode: '',
+    personalAccounts: [{ receiverName: '', bankName: '', bankAccountNumber: '', ifscCode: '' }],
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -49,15 +50,17 @@ const AddCompany = () => {
           email: c.email ?? '',
           bankName: c.bankName ?? '',
           bankAccountNumber: c.bankAccountNumber ?? '',
+          ifscCode: c.ifscCode ?? '',
           personalAccounts: Array.isArray(c.personalAccounts) && c.personalAccounts.length > 0
             ? c.personalAccounts.map((a) => ({
                 receiverName: a.receiverName ?? '',
                 bankName: a.bankName ?? '',
                 bankAccountNumber: a.bankAccountNumber ?? '',
+                ifscCode: a.ifscCode ?? '',
               }))
             : (c.personalReceiverName || c.personalBankName || c.personalBankAccountNumber
-                ? [{ receiverName: c.personalReceiverName ?? '', bankName: c.personalBankName ?? '', bankAccountNumber: c.personalBankAccountNumber ?? '' }]
-                : [{ receiverName: '', bankName: '', bankAccountNumber: '' }]),
+                ? [{ receiverName: c.personalReceiverName ?? '', bankName: c.personalBankName ?? '', bankAccountNumber: c.personalBankAccountNumber ?? '', ifscCode: '' }]
+                : [{ receiverName: '', bankName: '', bankAccountNumber: '', ifscCode: '' }]),
         })
       } catch (err) {
         setError(err.response?.data?.message || err.message || 'Error loading company')
@@ -68,7 +71,7 @@ const AddCompany = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target
-    setForm((f) => ({ ...f, [name]: value }))
+    setForm((f) => ({ ...f, [name]: name === 'ifscCode' ? value.toUpperCase() : value }))
   }
 
   const handleNumberChange = (e) => {
@@ -79,7 +82,7 @@ const AddCompany = () => {
   const addPersonalAccount = () => {
     setForm((f) => ({
       ...f,
-      personalAccounts: [...f.personalAccounts, { receiverName: '', bankName: '', bankAccountNumber: '' }],
+      personalAccounts: [...f.personalAccounts, { receiverName: '', bankName: '', bankAccountNumber: '', ifscCode: '' }],
     }))
   }
 
@@ -94,7 +97,7 @@ const AddCompany = () => {
     setForm((f) => ({
       ...f,
       personalAccounts: f.personalAccounts.map((acc, i) =>
-        i === index ? { ...acc, [field]: value } : acc
+        i === index ? { ...acc, [field]: field === 'ifscCode' ? value.toUpperCase() : value } : acc
       ),
     }))
   }
@@ -120,7 +123,9 @@ const AddCompany = () => {
       const payload = {
         ...form,
         breakTimeMinutes: Number(form.breakTimeMinutes) || 45,
-        personalAccounts: form.personalAccounts.filter((a) => a.receiverName || a.bankName || a.bankAccountNumber),
+        personalAccounts: form.personalAccounts.filter(
+          (a) => a.receiverName || a.bankName || a.bankAccountNumber || a.ifscCode
+        ),
       }
       if (payload.personalAccounts.length === 0) payload.personalAccounts = []
       if (isEdit) {
@@ -236,6 +241,17 @@ const AddCompany = () => {
                   <label className='block text-sm font-medium text-gray-700'>Bank Account Number</label>
                   <input name='bankAccountNumber' value={form.bankAccountNumber} onChange={handleChange} className={inputClass} />
                 </div>
+                <div>
+                  <label className='block text-sm font-medium text-gray-700'>IFSC Code</label>
+                  <input
+                    name='ifscCode'
+                    value={form.ifscCode}
+                    onChange={handleChange}
+                    maxLength={11}
+                    placeholder='e.g. HDFC0001234'
+                    className={`${inputClass} uppercase`}
+                  />
+                </div>
               </div>
             </div>
             <div className='border-t border-gray-200 pt-4 mt-4'>
@@ -268,6 +284,16 @@ const AddCompany = () => {
                       <div>
                         <label className='block text-xs font-medium text-gray-600'>Bank Account Number</label>
                         <input value={acc.bankAccountNumber} onChange={(e) => handlePersonalAccountChange(index, 'bankAccountNumber', e.target.value)} className={inputClass} />
+                      </div>
+                      <div>
+                        <label className='block text-xs font-medium text-gray-600'>IFSC Code</label>
+                        <input
+                          value={acc.ifscCode}
+                          onChange={(e) => handlePersonalAccountChange(index, 'ifscCode', e.target.value)}
+                          maxLength={11}
+                          placeholder='e.g. SBIN0001234'
+                          className={`${inputClass} uppercase`}
+                        />
                       </div>
                     </div>
                   </div>

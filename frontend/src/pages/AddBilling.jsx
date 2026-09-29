@@ -23,6 +23,7 @@ const AddBilling = () => {
     receiverName: '',
     receiverBankAccount: '',
     receiverBankName: '',
+    receiverIfscCode: '',
     modeOfTransaction: '',
   })
   const [clients, setClients] = useState([])
@@ -95,6 +96,7 @@ const AddBilling = () => {
             receiverName: c.companyName ?? '',
             receiverBankAccount: c.bankAccountNumber ?? '',
             receiverBankName: c.bankName ?? '',
+            receiverIfscCode: c.ifscCode ?? '',
           }))
         } else if (personalAccounts.length > 0) {
           setSelectedPersonalAccountIndex(0)
@@ -104,6 +106,7 @@ const AddBilling = () => {
             receiverName: acc.receiverName ?? '',
             receiverBankAccount: acc.bankAccountNumber ?? '',
             receiverBankName: acc.bankName ?? '',
+            receiverIfscCode: acc.ifscCode ?? '',
           }))
         }
       } catch (err) {
@@ -223,6 +226,7 @@ const AddBilling = () => {
           receiverName: b.paymentDetails?.receiverName ?? '',
           receiverBankAccount: b.paymentDetails?.receiverBankAccount ?? '',
           receiverBankName: b.paymentDetails?.receiverBankName ?? '',
+          receiverIfscCode: b.paymentDetails?.receiverIfscCode ?? '',
           modeOfTransaction: b.paymentDetails?.modeOfTransaction ?? '',
         })
       } catch (err) {
@@ -315,6 +319,7 @@ const AddBilling = () => {
           receiverName: paymentDetails.receiverName || '',
           receiverBankAccount: paymentDetails.receiverBankAccount || '',
           receiverBankName: paymentDetails.receiverBankName || '',
+          receiverIfscCode: paymentDetails.receiverIfscCode || '',
           modeOfTransaction: paymentDetails.modeOfTransaction || '',
         },
       }
@@ -580,6 +585,7 @@ const AddBilling = () => {
                       receiverName: acc.receiverName ?? '',
                       receiverBankAccount: acc.bankAccountNumber ?? '',
                       receiverBankName: acc.bankName ?? '',
+                      receiverIfscCode: acc.ifscCode ?? '',
                     }))
                   }
                 }}
@@ -613,6 +619,16 @@ const AddBilling = () => {
             <div>
               <label className='block text-sm font-medium text-gray-700'>Receiver Bank Name</label>
               <input value={paymentDetails.receiverBankName} onChange={(e) => setPaymentDetails((p) => ({ ...p, receiverBankName: e.target.value }))} className={inputClass} />
+            </div>
+            <div>
+              <label className='block text-sm font-medium text-gray-700'>Receiver IFSC Code</label>
+              <input
+                value={paymentDetails.receiverIfscCode}
+                onChange={(e) => setPaymentDetails((p) => ({ ...p, receiverIfscCode: e.target.value.toUpperCase() }))}
+                maxLength={11}
+                placeholder='e.g. HDFC0001234'
+                className={`${inputClass} uppercase`}
+              />
             </div>
             <div>
               <label className='block text-sm font-medium text-gray-700'>Mode of Transaction</label>

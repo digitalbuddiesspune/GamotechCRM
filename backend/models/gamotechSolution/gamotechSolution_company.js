@@ -17,11 +17,13 @@ const companySchema = new mongoose.Schema({
   email: { type: String, default: '' },
   bankName: { type: String, default: '' },
   bankAccountNumber: { type: String, default: '' },
+  ifscCode: { type: String, default: '', uppercase: true, trim: true },
   // Personal accounts (for Non-GST bills) - multiple allowed
   personalAccounts: [{
     receiverName: { type: String, default: '' },
     bankName: { type: String, default: '' },
     bankAccountNumber: { type: String, default: '' },
+    ifscCode: { type: String, default: '', uppercase: true, trim: true },
   }],
   /** Meta Graph API token (prefer System User non-expiring token). Overrides .env when set. */
   metaPageAccessToken: { type: String, default: '', select: false },
