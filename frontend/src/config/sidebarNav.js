@@ -40,6 +40,7 @@ export const getSidebarNav = ({ fullAccess, canViewProjects, canManageClients, c
             children: [
               { id: 'team-members', label: 'Team Members', path: '/my-team' },
               { id: 'team-leave', label: 'Leave', path: '/leave' },
+              { id: 'team-calendar', label: 'Leave Calendar', path: '/calendar' },
             ],
           },
         ]
@@ -77,6 +78,7 @@ export const getSidebarNav = ({ fullAccess, canViewProjects, canManageClients, c
         { id: 'directory', label: 'Directory', path: '/employees', requiresEmployeeAccess: true },
         { id: 'attendance', label: 'Attendance', path: '/attendance' },
         { id: 'leave', label: 'Leave', path: '/leave' },
+        { id: 'leave-calendar', label: 'Leave Calendar', path: '/calendar' },
         { id: 'performance', label: 'Performance', path: '/module/performance', requiresFullAccess: true },
         { id: 'assets', label: 'Assets', path: '/module/assets', requiresFullAccess: true },
       ],
@@ -194,7 +196,7 @@ export const getSidebarNav = ({ fullAccess, canViewProjects, canManageClients, c
         { id: 'my-profile', label: 'My Profile', path: '/my-profile' },
         { id: 'salary-slips', label: 'Salary Slips', path: '/salary-slips' },
         { id: 'my-tasks', label: 'My Tasks', path: '/my-tasks' },
-        { id: 'my-calendar', label: 'My Calendar', path: '/calendar' },
+        { id: 'my-calendar', label: 'Leave Calendar', path: '/calendar' },
         { id: 'my-leaves', label: 'My Leaves', path: '/leave' },
         { id: 'my-attendance', label: 'My Attendance', path: '/attendance' },
         { id: 'my-projects', label: 'My Projects', path: '/my-projects' },

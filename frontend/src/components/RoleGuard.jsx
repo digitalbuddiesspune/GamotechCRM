@@ -9,7 +9,6 @@ const HR_ONLY_PATHS = [
   '/billings',
   '/campaigns',
   '/reports',
-  '/calendar',
   '/company-profile',
 ]
 
