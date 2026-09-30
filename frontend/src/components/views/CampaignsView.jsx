@@ -35,6 +35,7 @@ const CampaignsView = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [search, setSearch] = useState('')
+  const [sortBy, setSortBy] = useState('created_desc')
 
   useEffect(() => {
     const load = async () => {
@@ -58,15 +59,57 @@ const CampaignsView = () => {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
-    if (!q) return campaigns
-    return campaigns.filter(
-      (c) =>
-        c.name?.toLowerCase().includes(q) ||
-        String(c.id).includes(q) ||
-        c.objective?.toLowerCase().includes(q) ||
-        c.status?.toLowerCase().includes(q)
-    )
-  }, [campaigns, search])
+    let list = campaigns
+    if (q) {
+      list = list.filter(
+        (c) =>
+          c.name?.toLowerCase().includes(q) ||
+          String(c.id).includes(q) ||
+          c.objective?.toLowerCase().includes(q) ||
+          c.status?.toLowerCase().includes(q)
+      )
+    }
+
+    const getTime = (val) => {
+      if (!val) return null
+      const t = new Date(val).getTime()
+      return Number.isNaN(t) ? null : t
+    }
+
+    return [...list].sort((a, b) => {
+      if (sortBy === 'created_desc') {
+        const tA = getTime(a.createdTime)
+        const tB = getTime(b.createdTime)
+        if (tA !== null && tB !== null) {
+          if (tB !== tA) return tB - tA
+        } else if (tA !== null) {
+          return -1
+        } else if (tB !== null) {
+          return 1
+        }
+        return (b.leadCount || 0) - (a.leadCount || 0) || (a.name || '').localeCompare(b.name || '')
+      }
+      if (sortBy === 'created_asc') {
+        const tA = getTime(a.createdTime)
+        const tB = getTime(b.createdTime)
+        if (tA !== null && tB !== null) {
+          if (tA !== tB) return tA - tB
+        } else if (tA !== null) {
+          return -1
+        } else if (tB !== null) {
+          return 1
+        }
+        return (b.leadCount || 0) - (a.leadCount || 0) || (a.name || '').localeCompare(b.name || '')
+      }
+      if (sortBy === 'leads_desc') {
+        return (b.leadCount || 0) - (a.leadCount || 0) || (a.name || '').localeCompare(b.name || '')
+      }
+      if (sortBy === 'name_asc') {
+        return (a.name || '').localeCompare(b.name || '')
+      }
+      return 0
+    })
+  }, [campaigns, search, sortBy])
 
   const totals = useMemo(
     () => ({
@@ -147,6 +190,17 @@ const CampaignsView = () => {
           placeholder='Search Meta campaign name or ID…'
           className='flex-1 max-w-md border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-purple-500'
         />
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value)}
+          aria-label='Sort campaigns'
+          className='border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white min-w-[210px] focus:outline-none focus:ring-2 focus:ring-purple-500'
+        >
+          <option value='created_desc'>Created date (newest first)</option>
+          <option value='created_asc'>Created date (oldest first)</option>
+          <option value='leads_desc'>Most CRM leads</option>
+          <option value='name_asc'>Name (A–Z)</option>
+        </select>
       </div>
 
       {loading ? (

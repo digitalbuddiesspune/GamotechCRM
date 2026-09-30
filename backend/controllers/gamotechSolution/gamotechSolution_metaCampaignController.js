@@ -100,9 +100,26 @@ const mergeCampaignRows = (graphCampaigns, leadStats) => {
     });
   }
 
-  return Array.from(byId.values()).sort(
-    (a, b) => b.leadCount - a.leadCount || a.adAccountName.localeCompare(b.adAccountName) || a.name.localeCompare(b.name)
-  );
+  return Array.from(byId.values()).sort((a, b) => {
+    const timeA = a.createdTime ? new Date(a.createdTime).getTime() : null;
+    const timeB = b.createdTime ? new Date(b.createdTime).getTime() : null;
+    const validA = timeA !== null && !Number.isNaN(timeA);
+    const validB = timeB !== null && !Number.isNaN(timeB);
+
+    if (validA && validB) {
+      if (timeB !== timeA) return timeB - timeA;
+    } else if (validA) {
+      return -1;
+    } else if (validB) {
+      return 1;
+    }
+
+    return (
+      (b.leadCount || 0) - (a.leadCount || 0) ||
+      (a.adAccountName || '').localeCompare(b.adAccountName || '') ||
+      (a.name || '').localeCompare(b.name || '')
+    );
+  });
 };
 
 const toAdAccountOption = (account) => {
