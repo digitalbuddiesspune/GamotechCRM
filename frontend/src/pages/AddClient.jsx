@@ -252,8 +252,10 @@ const AddClient = () => {
               <div>
                 <label className='block text-sm font-medium text-gray-700'>Client Category</label>
                 <select name='clientCategory' value={form.clientCategory} onChange={handleChange} required className={inputClass}>
-                  <option value='Property'>Property Client</option>
+                  <option value='IT'>IT Client</option>
                   <option value='Marketing'>Marketing Client</option>
+                  <option value='Other'>Other</option>
+
                 </select>
               </div>
               <div>
