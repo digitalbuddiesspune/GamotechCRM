@@ -132,10 +132,10 @@ const ClientsView = () => {
       <div className='flex items-center justify-between mb-6'>
         <div>
           <h1 className='text-2xl font-bold text-gray-900'>Clients</h1>
-          <p className='text-gray-600 mt-1 text-sm'>Manage marketing clients and property clients separately.</p>
+          <p className='text-gray-600 mt-1 text-sm'>Manage IT clients and marketing clients separately.</p>
         </div>
         <div>
-          <button
+          <button 
             onClick={() => navigate('/add-client')}
             className='bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm'
           >
@@ -145,7 +145,7 @@ const ClientsView = () => {
       </div>
 
       <div className='flex flex-wrap gap-2 mb-4'>
-        {['All', 'Property', 'Marketing'].map((tab) => (
+        {['All', 'IT', 'Marketing'].map((tab) => (
           <button
             key={tab}
             type='button'
