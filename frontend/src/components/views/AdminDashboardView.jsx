@@ -130,7 +130,7 @@ const Panel = ({ title, subtitle, actionLabel, onAction, children, className = '
 )
 
 const DonutLegend = ({ data, total, colors, valueSuffix = '' }) => (
-  <div className='mt-4 space-y-2.5'>
+  <div className='mt-3 sm:mt-0 space-y-2'>
     {data.map((d, i) => {
       const pct = total ? Math.round((d.value / total) * 100) : 0
       const color = d.color || colors[i % colors.length]
@@ -156,7 +156,7 @@ const DonutLegend = ({ data, total, colors, valueSuffix = '' }) => (
 
 const DonutChart = ({ data, total, centerLabel, centerValue, colors }) => (
   <div className='flex flex-col sm:flex-row items-center gap-4'>
-    <div className='h-44 w-44 relative shrink-0'>
+    <div className='w-36 h-36 sm:w-40 sm:h-40 xl:w-44 xl:h-44 relative shrink-0 mx-auto'>
       <ResponsiveContainer width='100%' height='100%'>
         <PieChart>
           <Pie
@@ -164,8 +164,8 @@ const DonutChart = ({ data, total, centerLabel, centerValue, colors }) => (
             dataKey='value'
             cx='50%'
             cy='50%'
-            innerRadius={52}
-            outerRadius={72}
+            innerRadius='58%'
+            outerRadius='82%'
             paddingAngle={3}
             cornerRadius={4}
             stroke='none'
@@ -179,8 +179,8 @@ const DonutChart = ({ data, total, centerLabel, centerValue, colors }) => (
       </ResponsiveContainer>
       <div className='absolute inset-0 flex items-center justify-center pointer-events-none'>
         <div className='text-center'>
-          <p className='text-2xl font-bold text-gray-900 leading-none'>{centerValue}</p>
-          <p className='text-[10px] uppercase tracking-wide text-gray-400 mt-1 font-medium'>{centerLabel}</p>
+          <p className='text-xl sm:text-2xl font-bold text-gray-900 leading-none'>{centerValue}</p>
+          <p className='text-[9px] sm:text-[10px] uppercase tracking-wide text-gray-400 mt-1 font-medium'>{centerLabel}</p>
         </div>
       </div>
     </div>

@@ -383,11 +383,11 @@ const ProjectsDashboardLayout = ({
           <div className='bg-white rounded-xl border border-gray-200 shadow-sm p-5'>
             <h3 className='text-sm font-semibold text-gray-900 mb-4'>Projects by Status</h3>
             {chartData.length ? (
-              <div className='flex items-center gap-4'>
-                <div className='h-40 w-40 shrink-0'>
+              <div className='flex flex-col sm:flex-row items-center gap-4'>
+                <div className='w-32 h-32 sm:w-40 sm:h-40 shrink-0 mx-auto'>
                   <ResponsiveContainer width='100%' height='100%'>
                     <PieChart>
-                      <Pie data={chartData} dataKey='value' cx='50%' cy='50%' innerRadius={42} outerRadius={62} paddingAngle={2}>
+                      <Pie data={chartData} dataKey='value' cx='50%' cy='50%' innerRadius='55%' outerRadius='80%' paddingAngle={2}>
                         {chartData.map((d) => <Cell key={d.name} fill={d.color} />)}
                       </Pie>
                       <Tooltip />

@@ -1361,7 +1361,7 @@ const AttendanceView = () => {
                 <div className='h-44'>
                   <ResponsiveContainer width='100%' height='100%'>
                     <PieChart>
-                      <Pie data={weekChartData} dataKey='value' nameKey='name' cx='50%' cy='50%' innerRadius={48} outerRadius={68} paddingAngle={2}>
+                      <Pie data={weekChartData} dataKey='value' nameKey='name' cx='50%' cy='50%' innerRadius='55%' outerRadius='80%' paddingAngle={2}>
                         {weekChartData.map((entry, index) => (
                           <Cell key={entry.name} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                         ))}

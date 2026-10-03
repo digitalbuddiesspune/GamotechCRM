@@ -494,10 +494,10 @@ const TeamLeaderDashboardView = () => {
         <Panel title='Task Status'>
           {stats.taskChart.length ? (
             <>
-              <div className='h-40 relative'>
+              <div className='h-36 sm:h-40 relative'>
                 <ResponsiveContainer width='100%' height='100%'>
                   <PieChart>
-                    <Pie data={stats.taskChart} dataKey='value' cx='50%' cy='50%' innerRadius={46} outerRadius={64} paddingAngle={3}>
+                    <Pie data={stats.taskChart} dataKey='value' cx='50%' cy='50%' innerRadius='55%' outerRadius='80%' paddingAngle={3}>
                       {stats.taskChart.map((d) => (
                         <Cell key={d.name} fill={d.color} />
                       ))}
@@ -507,7 +507,7 @@ const TeamLeaderDashboardView = () => {
                 </ResponsiveContainer>
                 <div className='absolute inset-0 flex items-center justify-center pointer-events-none'>
                   <div className='text-center'>
-                    <p className='text-xl font-bold text-gray-900'>{stats.totalTasks}</p>
+                    <p className='text-lg sm:text-xl font-bold text-gray-900'>{stats.totalTasks}</p>
                     <p className='text-[10px] text-gray-500'>Total Tasks</p>
                   </div>
                 </div>

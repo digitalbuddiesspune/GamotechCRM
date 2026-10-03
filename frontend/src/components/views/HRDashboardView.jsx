@@ -253,11 +253,11 @@ const HRDashboardView = () => {
         </Panel>
 
         <Panel title='Employees by Department'>
-          <div className='h-52'>
+          <div className='h-48 sm:h-52'>
             {stats.deptChart.length ? (
               <ResponsiveContainer width='100%' height='100%'>
                 <PieChart>
-                  <Pie data={stats.deptChart} dataKey='value' nameKey='name' cx='50%' cy='50%' innerRadius={45} outerRadius={70} paddingAngle={2}>
+                  <Pie data={stats.deptChart} dataKey='value' nameKey='name' cx='50%' cy='50%' innerRadius='48%' outerRadius='75%' paddingAngle={2}>
                     {stats.deptChart.map((_, i) => <Cell key={i} fill={DEPT_COLORS[i % DEPT_COLORS.length]} />)}
                   </Pie>
                   <Tooltip />
@@ -272,12 +272,12 @@ const HRDashboardView = () => {
         </Panel>
 
         <Panel title='Attendance Summary'>
-          <div className='flex items-center gap-4'>
-            <div className='h-40 w-40 shrink-0'>
+          <div className='flex flex-col sm:flex-row items-center gap-4'>
+            <div className='w-32 h-32 sm:w-36 sm:h-36 md:w-40 md:h-40 shrink-0 mx-auto'>
               {attendancePie.length ? (
                 <ResponsiveContainer width='100%' height='100%'>
                   <PieChart>
-                    <Pie data={attendancePie} dataKey='value' cx='50%' cy='50%' innerRadius={35} outerRadius={55}>
+                    <Pie data={attendancePie} dataKey='value' cx='50%' cy='50%' innerRadius='55%' outerRadius='82%'>
                       {attendancePie.map((d) => <Cell key={d.name} fill={d.color} />)}
                     </Pie>
                   </PieChart>
@@ -286,11 +286,11 @@ const HRDashboardView = () => {
                 <div className='h-full flex items-center justify-center text-gray-400 text-sm'>No data</div>
               )}
             </div>
-            <div className='flex-1 space-y-2'>
-              <p className='text-2xl font-bold text-gray-900'>{stats.presentPct}%</p>
+            <div className='flex-1 w-full space-y-2'>
+              <p className='text-xl sm:text-2xl font-bold text-gray-900'>{stats.presentPct}%</p>
               <p className='text-xs text-gray-500 mb-3'>Present today</p>
               {attendancePie.map((d) => (
-                <div key={d.name} className='flex items-center justify-between text-sm'>
+                <div key={d.name} className='flex items-center justify-between text-xs sm:text-sm'>
                   <span className='flex items-center gap-2'><span className='w-2 h-2 rounded-full' style={{ background: d.color }} />{d.name}</span>
                   <span className='font-semibold'>{d.value}</span>
                 </div>

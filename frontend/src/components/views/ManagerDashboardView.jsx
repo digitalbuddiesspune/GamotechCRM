@@ -407,10 +407,10 @@ const ManagerDashboardView = () => {
         <Panel title='Projects Status' actionLabel='View All' onAction={() => navigate('/projects')}>
           {stats.projectChart.length ? (
             <>
-              <div className='h-44 relative'>
+              <div className='h-40 sm:h-44 relative'>
                 <ResponsiveContainer width='100%' height='100%'>
                   <PieChart>
-                    <Pie data={stats.projectChart} dataKey='value' cx='50%' cy='50%' innerRadius={48} outerRadius={68} paddingAngle={3}>
+                    <Pie data={stats.projectChart} dataKey='value' cx='50%' cy='50%' innerRadius='55%' outerRadius='80%' paddingAngle={3}>
                       {stats.projectChart.map((d) => (
                         <Cell key={d.name} fill={d.color} />
                       ))}
@@ -420,8 +420,8 @@ const ManagerDashboardView = () => {
                 </ResponsiveContainer>
                 <div className='absolute inset-0 flex items-center justify-center pointer-events-none'>
                   <div className='text-center'>
-                    <p className='text-2xl font-bold text-gray-900'>{projects.length}</p>
-                    <p className='text-[11px] text-gray-500'>Total</p>
+                    <p className='text-xl sm:text-2xl font-bold text-gray-900'>{projects.length}</p>
+                    <p className='text-[10px] sm:text-[11px] text-gray-500'>Total</p>
                   </div>
                 </div>
               </div>
