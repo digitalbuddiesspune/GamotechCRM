@@ -133,8 +133,29 @@ const fetchMetaLead = async (leadgenId, accessToken) => {
   url.searchParams.set('access_token', accessToken);
   url.searchParams.set('fields', 'id,created_time,ad_id,adset_id,campaign_id,form_id,field_data');
 
-  const response = await fetch(url);
-  const data = await response.json().catch(() => ({}));
+  let response = await fetch(url);
+  let data = await response.json().catch(() => ({}));
+
+  // If a Page Access Token is needed (code 190 or 100), resolve Page token from /me/accounts
+  if (!response.ok && (data?.error?.code === 190 || data?.error?.code === 100)) {
+    try {
+      const accountsRes = await fetch(
+        `https://graph.facebook.com/v21.0/me/accounts?access_token=${encodeURIComponent(accessToken)}`
+      );
+      const accountsData = await accountsRes.json().catch(() => ({}));
+      for (const page of accountsData?.data || []) {
+        if (page?.access_token && page.access_token !== accessToken) {
+          url.searchParams.set('access_token', page.access_token);
+          const pageRes = await fetch(url);
+          const pageData = await pageRes.json().catch(() => ({}));
+          if (pageRes.ok) {
+            return pageData;
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
   if (!response.ok) {
     const message = data?.error?.message || `Meta Graph API error (${response.status})`;
     const err = new Error(message);
