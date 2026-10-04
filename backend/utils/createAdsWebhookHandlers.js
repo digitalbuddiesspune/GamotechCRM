@@ -168,7 +168,21 @@ export function createAdsWebhookHandlers({ Lead, Employee, tenantKey }) {
     return fallback?._id || null;
   };
 
-  const getMetaToken = async () => {
+  const getMetaToken = async (req) => {
+    const authHeader = pick(req?.headers?.authorization);
+    if (authHeader && authHeader.toLowerCase().startsWith('bearer ')) {
+      const bearer = authHeader.slice(7).trim();
+      if (bearer) return bearer;
+    }
+    const customHeader = pick(
+      req?.headers?.['x-meta-page-access-token'],
+      req?.headers?.['x-meta-token']
+    );
+    if (customHeader) return customHeader;
+
+    const queryOrBody = pick(req?.query?.access_token, req?.body?.access_token);
+    if (queryOrBody) return queryOrBody;
+
     const fromDbOrEnv = await resolveMetaAccessToken();
     if (fromDbOrEnv) return fromDbOrEnv;
     return pick(process.env[envKeys.metaToken], process.env.META_PAGE_ACCESS_TOKEN);
@@ -269,25 +283,51 @@ export function createAdsWebhookHandlers({ Lead, Employee, tenantKey }) {
   /** Meta leadgen event — fetch full lead from Graph API and create CRM lead. */
   const receiveMetaWebhook = async (req, res) => {
     try {
-      // Acknowledge quickly-friendly: process then respond (sync is fine for CRM volume)
       const body = req.body || {};
-      const accessToken = await getMetaToken();
+      const accessToken = await getMetaToken(req);
 
-      // Direct / Zapier-style Meta payload (already has field_data or flat fields)
-      if (body.field_data || body.leadgen_id || body.id || body.name || body.phone || body.phone_number) {
+      // Check if standard Meta webhook envelope exists
+      const entries = Array.isArray(body.entry) ? body.entry : [];
+      const hasStandardMetaEnvelope = entries.length > 0;
+
+      // Direct / Zapier-style Meta payload (when not inside standard entry array)
+      if (
+        !hasStandardMetaEnvelope &&
+        (body.field_data ||
+          body.leadgen_id ||
+          body.lead_id ||
+          body.leadId ||
+          body.id ||
+          body.name ||
+          body.phone ||
+          body.phone_number)
+      ) {
         let mapped;
-        let externalLeadId = pick(body.leadgen_id, body.id, body.externalLeadId);
+        const directLeadgenId = pick(
+          body.leadgen_id,
+          body.lead_id,
+          body.leadId,
+          body.field_data || body.phone || body.phone_number || body.contactNumber ? '' : body.id
+        );
+        let externalLeadId = pick(directLeadgenId, body.id, body.externalLeadId);
         let campaignId = pick(body.campaign_id, body.campaignId);
         let adId = pick(body.ad_id, body.adId);
         let formId = pick(body.form_id, body.formId);
         let raw = body;
 
-        if (Array.isArray(body.field_data)) {
+        if (Array.isArray(body.field_data) && body.field_data.length > 0) {
           mapped = mapFromFieldMap(metaFieldDataToMap(body.field_data));
-        } else if (body.leadgen_id && accessToken) {
-          const remote = await fetchMetaLead(body.leadgen_id, accessToken);
+        } else if (directLeadgenId) {
+          if (!accessToken) {
+            return res.status(400).json({
+              message: `Meta access token is required to fetch leadgen_id (${directLeadgenId}). Provide 'Authorization: Bearer <token>' in the request header or save the token in CRM Settings → Meta integration.`,
+            });
+          }
+          console.log(`[${tenantKey}] Fetching Meta lead details for direct leadgen_id: ${directLeadgenId}...`);
+          const remote = await fetchMetaLead(directLeadgenId, accessToken);
+          console.log(`[${tenantKey}] Successfully fetched Meta lead for leadgen_id: ${directLeadgenId}`);
           mapped = mapFromFieldMap(metaFieldDataToMap(remote.field_data || []));
-          externalLeadId = pick(remote.id, externalLeadId);
+          externalLeadId = pick(remote.id, externalLeadId, directLeadgenId);
           campaignId = pick(remote.campaign_id, campaignId);
           adId = pick(remote.ad_id, adId);
           formId = pick(remote.form_id, formId);
@@ -314,7 +354,6 @@ export function createAdsWebhookHandlers({ Lead, Employee, tenantKey }) {
       }
 
       // Standard Page webhook envelope
-      const entries = Array.isArray(body.entry) ? body.entry : [];
       const results = [];
 
       for (const entry of entries) {
@@ -322,17 +361,22 @@ export function createAdsWebhookHandlers({ Lead, Employee, tenantKey }) {
         for (const change of changes) {
           if (change?.field !== 'leadgen') continue;
           const value = change.value || {};
-          const leadgenId = pick(value.leadgen_id);
+          const leadgenId = pick(value.leadgen_id, value.lead_id);
           if (!leadgenId) continue;
 
           if (!accessToken) {
+            console.error(
+              `[${tenantKey}] Meta webhook received leadgen_id (${leadgenId}), but no Meta page access token is configured.`
+            );
             return res.status(500).json({
               message:
-                `META page access token missing. Set ${envKeys.metaToken} or META_PAGE_ACCESS_TOKEN.`,
+                `META page access token missing. Set it in Settings → Meta integration or backend .env (${envKeys.metaToken} or META_PAGE_ACCESS_TOKEN).`,
             });
           }
 
+          console.log(`[${tenantKey}] Fetching Meta lead details for leadgen_id: ${leadgenId}...`);
           const remote = await fetchMetaLead(leadgenId, accessToken);
+          console.log(`[${tenantKey}] Successfully fetched Meta lead for leadgen_id: ${leadgenId}`);
           const mapped = mapFromFieldMap(metaFieldDataToMap(remote.field_data || []));
           const { lead, created } = await upsertAdsLead({
             mapped,

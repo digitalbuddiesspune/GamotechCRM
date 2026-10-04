@@ -17,13 +17,17 @@ const tokenFromEnv = () =>
 
 /** CRM DB token first, then .env (single-tenant company record). */
 export async function resolveMetaAccessToken() {
-  const company = await Company.findOne()
-    .select('+metaPageAccessToken metaTokenExpiresAt')
-    .sort({ createdAt: 1 })
-    .lean();
+  try {
+    const company = await Company.findOne()
+      .select('+metaPageAccessToken metaTokenExpiresAt')
+      .sort({ createdAt: 1 })
+      .lean();
 
-  const dbToken = pick(company?.metaPageAccessToken);
-  if (dbToken) return dbToken;
+    const dbToken = pick(company?.metaPageAccessToken);
+    if (dbToken) return dbToken;
+  } catch (err) {
+    // fallback to env
+  }
   return tokenFromEnv();
 }
 
