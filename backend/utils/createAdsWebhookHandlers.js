@@ -357,20 +357,13 @@ export function createAdsWebhookHandlers({ Lead, Employee, tenantKey }) {
           body.leadId,
           body.field_data || body.phone || body.phone_number || body.contactNumber ? '' : body.id
         );
-        let externalLeadId = pick(directLeadgenId, body.id, body.externalLeadId);
+        let externalLeadId = isDummyLeadgenId(directLeadgenId)
+          ? `test_${directLeadgenId}_${Date.now()}`
+          : pick(directLeadgenId, body.id, body.externalLeadId);
         let campaignId = pick(body.campaign_id, body.campaignId);
         let adId = pick(body.ad_id, body.adId);
         let formId = pick(body.form_id, body.formId);
         let raw = body;
-
-        if (directLeadgenId && isDummyLeadgenId(directLeadgenId)) {
-          console.log(`[${tenantKey}] Received direct Meta test payload with dummy leadgen_id: ${directLeadgenId}. Responding 200 OK.`);
-          return res.status(200).json({
-            message: 'Meta test payload received successfully',
-            test: true,
-            leadgen_id: directLeadgenId,
-          });
-        }
 
         if (Array.isArray(body.field_data) && body.field_data.length > 0) {
           mapped = mapFromFieldMap(metaFieldDataToMap(body.field_data));
@@ -421,16 +414,11 @@ export function createAdsWebhookHandlers({ Lead, Employee, tenantKey }) {
           const leadgenId = pick(value.leadgen_id, value.lead_id);
           if (!leadgenId) continue;
 
-          // Check if this is Meta Developer Dashboard's dummy test ID (e.g. 444444444444)
           if (isDummyLeadgenId(leadgenId)) {
             console.log(
-              `[${tenantKey}] Received Meta test webhook event (dummy leadgen_id: ${leadgenId}). Test passed successfully!`
+              `[${tenantKey}] Received Meta test webhook event (dummy leadgen_id: ${leadgenId}). Processing test lead into CRM...`
             );
-            results.push({ leadId: null, created: false, test: true, leadgenId });
-            continue;
-          }
-
-          if (!accessToken) {
+          } else if (!accessToken) {
             console.error(
               `[${tenantKey}] Meta webhook received leadgen_id (${leadgenId}), but no Meta page access token is configured.`
             );
@@ -461,17 +449,20 @@ export function createAdsWebhookHandlers({ Lead, Employee, tenantKey }) {
 
           try {
             const mapped = mapFromFieldMap(metaFieldDataToMap(remote.field_data || []));
+            const externalLeadId = isDummyLeadgenId(leadgenId)
+              ? `test_${leadgenId}_${Date.now()}`
+              : pick(remote.id, leadgenId);
             const { lead, created } = await upsertAdsLead({
               mapped,
               leadSource: 'Meta Ads',
               adPlatform: 'meta',
-              externalLeadId: pick(remote.id, leadgenId),
+              externalLeadId,
               campaignId: pick(remote.campaign_id, value.campaign_id),
               adId: pick(remote.ad_id, value.ad_id),
               formId: pick(remote.form_id, value.form_id),
               rawPayload: { webhook: value, lead: remote },
             });
-            results.push({ leadId: lead._id, created });
+            results.push({ leadId: lead._id, created, test: Boolean(remote?.is_test) });
           } catch (upsertErr) {
             console.error(
               `[${tenantKey}] Failed to upsert Meta lead for leadgen_id (${leadgenId}):`,
