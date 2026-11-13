@@ -50,6 +50,8 @@ import ClientDashboardView from '../components/views/ClientDashboardView'
 import ProjectDashboardView from '../components/views/ProjectDashboardView'
 import AddClientProfile from '../pages/AddClientProfile'
 import SocialCalendarClientView from '../pages/SocialCalendarClientView'
+import ClientLeadPortalsView from '../components/views/ClientLeadPortalsView'
+import ClientLeadsDashboard from '../components/views/ClientLeadsDashboard'
 
 const router = createBrowserRouter([
     {
@@ -81,6 +83,10 @@ const router = createBrowserRouter([
             { path: 'add-collaborator', element: <AddCollaborator /> },
             { path: 'collaborators/edit/:id', element: <AddCollaborator /> },
             { path: 'campaigns', element: <CampaignsView /> },
+            { path: 'client-lead-portals', element: <ClientLeadPortalsView /> },
+            { path: 'client-leads', element: <ClientLeadsDashboard /> },
+            { path: 'client-leads/view/:source/:id', element: <AddLead readOnly clientPortal /> },
+            { path: 'client-leads/edit/:source/:id', element: <AddLead clientPortal /> },
             { path: 'leads', element: <LeadsView /> },
             { path: 'add-lead', element: <AddLead /> },
             { path: 'leads/view/:id', element: <AddLead readOnly /> },

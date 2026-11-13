@@ -128,6 +128,7 @@ export const getSidebarNav = ({ fullAccess, canViewProjects, canManageClients, c
       type: 'group',
       children: [
         { id: 'campaigns', label: 'Campaigns', path: '/campaigns', requiresFullAccess: true },
+        { id: 'client-lead-portals', label: 'Client lead dashboards', path: '/client-lead-portals', requiresFullAccess: true },
         { id: 'email', label: 'Email', path: '/module/email', requiresFullAccess: true },
         { id: 'sms', label: 'SMS', path: '/module/sms', requiresFullAccess: true },
         { id: 'whatsapp', label: 'WhatsApp', path: '/module/whatsapp', requiresFullAccess: true },

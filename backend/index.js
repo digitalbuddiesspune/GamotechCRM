@@ -133,6 +133,7 @@ const routeFiles = [
   'adsWebhookRoute',
   'metaCampaignRoute',
   'leaveCalendarRoute',
+  'clientLeadPortalRoute',
 ];
 
 for (const company of companies) {

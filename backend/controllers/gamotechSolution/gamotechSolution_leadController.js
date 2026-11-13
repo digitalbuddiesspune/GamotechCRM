@@ -1,4 +1,6 @@
 import Lead from '../../models/gamotechSolution/gamotechSolution_lead.js';
+import SheetLead from '../../models/gamotechSolution/gamotechSolution_sheetLead.js';
+import { buildFormAnswers, descriptionWithoutImportedAnswers } from '../../utils/metaFormAnswers.js';
 
 export const createLead = async (req, res) => {
   try {
@@ -76,7 +78,16 @@ export const getLeadById = async (req, res) => {
   try {
     const lead = await Lead.findById(req.params.id).populate('generatedBy');
     if (!lead) return res.status(404).json({ message: 'Lead not found' });
-    res.status(200).json(lead);
+    const sheet = lead.externalLeadId
+      ? await SheetLead.findOne({ metaLeadId: lead.externalLeadId })
+      : null;
+    const formAnswers = buildFormAnswers({ lead, sheet });
+    const payload = lead.toObject();
+    payload.formAnswers = formAnswers;
+    if (formAnswers.length) {
+      payload.description = descriptionWithoutImportedAnswers(payload.description);
+    }
+    res.status(200).json(payload);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching lead', error });
   }

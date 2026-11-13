@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { EditIcon, ViewIcon } from '../Icons'
 import { getLeadCampaignMeta } from '../../utils/leadCampaigns'
+import StatusFilterChips from '../StatusFilterChips'
 
 const STATUS_OPTIONS = [
   'Call not Received',
@@ -79,7 +80,7 @@ const LeadsTable = ({ leads, navigate }) => (
                     <button
                       type='button'
                       onClick={() => navigate(`/leads/view/${l._id}`)}
-                      className='p-1.5 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors'
+                      className='cursor-pointer p-1.5 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors'
                       title='View details'
                     >
                       <ViewIcon />
@@ -87,7 +88,7 @@ const LeadsTable = ({ leads, navigate }) => (
                     <button
                       type='button'
                       onClick={() => navigate(`/leads/edit/${l._id}`)}
-                      className='p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors'
+                      className='cursor-pointer p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors'
                       title='Edit'
                     >
                       <EditIcon />
@@ -136,7 +137,8 @@ const LeadsView = () => {
       setLoading(true)
       const params = new URLSearchParams()
       Object.entries(filters).forEach(([k, v]) => {
-        if (v) params.append(k, v)
+        if (k === 'status' || !v) return
+        params.append(k, v)
       })
       const res = await api.get(`/leads?${params.toString()}`)
       setLeads(Array.isArray(res.data) ? res.data : [])
@@ -186,9 +188,22 @@ const LeadsView = () => {
     })
   }, [leads, campaignFilter])
 
+  const statusCounts = useMemo(() => {
+    const counts = { '': leadsAfterCampaignFilter.length }
+    for (const status of STATUS_OPTIONS) {
+      counts[status] = leadsAfterCampaignFilter.filter((lead) => lead.status === status).length
+    }
+    return counts
+  }, [leadsAfterCampaignFilter])
+
+  const visibleLeads = useMemo(() => {
+    if (!filters.status) return leadsAfterCampaignFilter
+    return leadsAfterCampaignFilter.filter((lead) => lead.status === filters.status)
+  }, [leadsAfterCampaignFilter, filters.status])
+
   const campaignGroups = useMemo(() => {
     const map = new Map()
-    for (const lead of leadsAfterCampaignFilter) {
+    for (const lead of visibleLeads) {
       const meta = getLeadCampaignMeta(lead)
       if (!map.has(meta.groupKey)) {
         map.set(meta.groupKey, {
@@ -201,7 +216,7 @@ const LeadsView = () => {
       map.get(meta.groupKey).leads.push(lead)
     }
     return Array.from(map.values()).sort((a, b) => b.leads.length - a.leads.length)
-  }, [leadsAfterCampaignFilter])
+  }, [visibleLeads])
 
   const campaignOptions = useMemo(() => {
     const map = new Map()
@@ -323,28 +338,28 @@ const LeadsView = () => {
         <div className='bg-white rounded-lg shadow p-5 border-l-4 border-blue-500'>
           <p className='text-sm font-medium text-gray-600'>Total Leads</p>
           <p className='text-2xl font-bold text-gray-900 mt-1'>
-            {loading ? '—' : leads.length}
+            {loading ? '—' : visibleLeads.length}
           </p>
           <p className='text-xs text-gray-500 mt-1'>Based on current filters</p>
         </div>
         <div className='bg-white rounded-lg shadow p-5 border-l-4 border-green-500'>
           <p className='text-sm font-medium text-gray-600'>Interested</p>
           <p className='text-2xl font-bold text-gray-900 mt-1'>
-            {loading ? '—' : leads.filter((l) => l.status === 'Interested').length}
+            {loading ? '—' : visibleLeads.filter((l) => l.status === 'Interested').length}
           </p>
           <p className='text-xs text-gray-500 mt-1'>Based on current filters</p>
         </div>
         <div className='bg-white rounded-lg shadow p-5 border-l-4 border-amber-500'>
           <p className='text-sm font-medium text-gray-600'>Meeting Schedule</p>
           <p className='text-2xl font-bold text-gray-900 mt-1'>
-            {loading ? '—' : leads.filter((l) => l.status === 'Meeting Schedule').length}
+            {loading ? '—' : visibleLeads.filter((l) => l.status === 'Meeting Schedule').length}
           </p>
           <p className='text-xs text-gray-500 mt-1'>Based on current filters</p>
         </div>
         <div className='bg-white rounded-lg shadow p-5 border-l-4 border-gray-400'>
           <p className='text-sm font-medium text-gray-600'>Not Interested</p>
           <p className='text-2xl font-bold text-gray-900 mt-1'>
-            {loading ? '—' : leads.filter((l) => l.status === 'Not Interested').length}
+            {loading ? '—' : visibleLeads.filter((l) => l.status === 'Not Interested').length}
           </p>
           <p className='text-xs text-gray-500 mt-1'>Based on current filters</p>
         </div>
@@ -359,6 +374,14 @@ const LeadsView = () => {
 
       <div className='bg-white rounded-lg shadow p-4 mb-6'>
         <h3 className='text-sm font-semibold text-gray-700 mb-3'>Filters</h3>
+        <div className='mb-4'>
+          <p className='text-xs font-medium text-gray-600 mb-2'>Status</p>
+          <StatusFilterChips
+            value={filters.status}
+            onChange={(status) => handleFilterChange('status', status)}
+            counts={loading ? undefined : statusCounts}
+          />
+        </div>
         <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4'>
           <div>
             <label className='block text-xs font-medium text-gray-600 mb-1'>Search</label>
@@ -369,19 +392,6 @@ const LeadsView = () => {
               placeholder='Name, business, contact, lead source...'
               className='w-full border border-gray-300 rounded-lg px-3 py-2 text-sm'
             />
-          </div>
-          <div>
-            <label className='block text-xs font-medium text-gray-600 mb-1'>Status</label>
-            <select
-              value={filters.status}
-              onChange={(e) => handleFilterChange('status', e.target.value)}
-              className='w-full border border-gray-300 rounded-lg px-3 py-2 text-sm'
-            >
-              <option value=''>All status</option>
-              {STATUS_OPTIONS.map((s) => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
           </div>
           <div>
             <label className='block text-xs font-medium text-gray-600 mb-1'>Date</label>
@@ -497,7 +507,7 @@ const LeadsView = () => {
                   <button
                     type='button'
                     onClick={() => toggleCampaign(group.groupKey)}
-                    className='w-full flex flex-wrap items-center justify-between gap-3 px-5 py-4 text-left hover:bg-gray-50/80'
+                    className='w-full flex cursor-pointer flex-wrap items-center justify-between gap-3 px-5 py-4 text-left hover:bg-gray-50/80'
                   >
                     <div className='min-w-0'>
                       <h3 className='text-base font-semibold text-gray-900 truncate'>{group.label}</h3>
@@ -529,7 +539,7 @@ const LeadsView = () => {
           )}
         </div>
       ) : (
-        <LeadsTable leads={leadsAfterCampaignFilter} navigate={navigate} />
+        <LeadsTable leads={visibleLeads} navigate={navigate} />
       )}
     </div>
   )

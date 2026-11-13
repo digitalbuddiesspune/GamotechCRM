@@ -1,6 +1,7 @@
 import Employee from '../../models/gamotechSolution/gamotechSolution_employee.js';
 import bcrypt from 'bcryptjs';
 import { enrichLoginUser } from '../../utils/adminAccess.js';
+import { loginClientLeadPortal } from './gamotechSolution_clientLeadPortalController.js';
 
 export const login = async (req, res) => {
   try {
@@ -10,7 +11,19 @@ export const login = async (req, res) => {
     }
     const employee = await Employee.findOne({ email }).select('+password').populate('designation');
     if (!employee) {
-      return res.status(401).json({ message: 'Invalid email or password' });
+      try {
+        const clientLogin = await loginClientLeadPortal(email, password);
+        if (!clientLogin) {
+          return res.status(401).json({ message: 'Invalid email or password' });
+        }
+        return res.status(200).json({
+          message: 'Login successful',
+          user: clientLogin.user,
+          token: clientLogin.token,
+        });
+      } catch (clientError) {
+        return res.status(clientError.status || 401).json({ message: clientError.message || 'Invalid email or password' });
+      }
     }
     if (!employee.password) {
       return res.status(401).json({ message: 'Account not set up for login. Please contact admin.' });

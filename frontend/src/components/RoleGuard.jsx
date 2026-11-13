@@ -8,6 +8,7 @@ const HR_ONLY_PATHS = [
   '/add-salary',
   '/billings',
   '/campaigns',
+  '/client-lead-portals',
   '/reports',
   '/company-profile',
 ]
@@ -52,6 +53,14 @@ const RoleGuard = ({ children }) => {
   } = useAuth()
   const location = useLocation()
   const dashboardPath = getDashboardPath()
+
+  if (user?.accountType === 'client_portal') {
+    const onClientLeads = location.pathname === '/client-leads'
+      || /^\/client-leads\/view\/(crm|sheet)\/[^/]+$/.test(location.pathname)
+      || /^\/client-leads\/edit\/(crm|sheet)\/[^/]+$/.test(location.pathname)
+    if (onClientLeads) return children
+    return <Navigate to='/client-leads' replace />
+  }
 
   const ownProfileMatch = location.pathname.match(/^\/employees\/([^/]+)\/profile$/)
   const isOwnProfile = ownProfileMatch && user?._id && String(ownProfileMatch[1]) === String(user._id)

@@ -76,6 +76,7 @@ export const AuthProvider = ({ children }) => {
     const res = await api.post('/auth/login', { email, password })
     const u = normalizeStoredUser(res.data?.user)
     if (u) {
+      if (res.data?.token) u.token = res.data.token
       setUser(u)
       localStorage.setItem(AUTH_KEY, JSON.stringify(u))
       return u

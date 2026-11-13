@@ -21,6 +21,8 @@ export const getSheetLeadSchemaFields = (employeeRef, crmLeadRef) => ({
   fullName: { type: String, required: true },
   phone: { type: String, required: true, index: true },
   sheetLeadStatus: { type: String, default: '' },
+  clientStatus: { type: String, default: '' },
+  clientRemark: { type: String, default: '' },
   executiveName: { type: String, default: '' },
   remark: { type: String, default: '' },
   sourceFileName: { type: String, default: '' },
@@ -36,4 +38,5 @@ export const getSheetLeadSchemaFields = (employeeRef, crmLeadRef) => ({
     default: null,
   },
   rawRow: { type: Object, default: undefined },
+  clientProfile: { type: Object, default: undefined },
 });

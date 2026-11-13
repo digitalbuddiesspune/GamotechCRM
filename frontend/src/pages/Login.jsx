@@ -66,11 +66,13 @@ const Login = () => {
       if (remember) localStorage.setItem(REMEMBER_KEY, email)
       else localStorage.removeItem(REMEMBER_KEY)
 
-      const today = new Date().toISOString().slice(0, 10)
-      const lastLoginDate = localStorage.getItem('crm_last_login_date')
-      if (lastLoginDate !== today) {
-        sessionStorage.setItem('crm_show_location_prompt', '1')
-        localStorage.setItem('crm_last_login_date', today)
+      if (loggedInUser?.accountType !== 'client_portal') {
+        const today = new Date().toISOString().slice(0, 10)
+        const lastLoginDate = localStorage.getItem('crm_last_login_date')
+        if (lastLoginDate !== today) {
+          sessionStorage.setItem('crm_show_location_prompt', '1')
+          localStorage.setItem('crm_last_login_date', today)
+        }
       }
       navigate(getDashboardPathForUser(loggedInUser))
     } catch (err) {

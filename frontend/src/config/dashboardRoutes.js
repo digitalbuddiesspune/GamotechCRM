@@ -4,6 +4,7 @@ export const DASHBOARD_PATHS = {
   manager: '/manager-dashboard',
   team_leader: '/team-leader-dashboard',
   employee: '/dashboard',
+  client_portal: '/client-leads',
 }
 
 const ACCESS_ROLE_DASHBOARD = {
@@ -33,6 +34,7 @@ const isManagerTitle = (title = '') => {
 }
 
 export const getDashboardKind = (user) => {
+  if (user?.accountType === 'client_portal') return 'client_portal'
   const rawDesignation = user?.designation
   const title = String(
     typeof rawDesignation === 'string'
@@ -69,3 +71,4 @@ export const isDashboardRoute = (pathname = '') =>
   || pathname === '/hr-dashboard'
   || pathname === '/manager-dashboard'
   || pathname === '/team-leader-dashboard'
+  || pathname === '/client-leads'

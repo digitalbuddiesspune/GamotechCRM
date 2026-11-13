@@ -42,6 +42,7 @@ const leadSchema = new mongoose.Schema({
     ref: 'gamotechSolution_Employee',
     required: true,
   },
+  clientPortalNote: { type: String, default: '' },
   ...adsLeadSchemaFields,
 }, { timestamps: true });
 

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import Logo from '../assets/gamotech-Photoroom.png'
+import BrandLogo from './BrandLogo'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import api from '../api/axios'
@@ -47,18 +48,34 @@ const Sidebar = ({ isOpen = true, onToggle }) => {
   const allowedSections = getSidebarSections()
   const dashboardPath = getDashboardPath()
   const isTeamLeader = getDashboardKind(user) === 'team_leader'
+  const isClientPortal = user?.accountType === 'client_portal'
 
   const sections = useMemo(
-    () => getSidebarNav({
-      fullAccess,
-      canViewProjects: canViewProjectsValue,
-      canManageClients: canManageClientsValue,
-      canManageEmployees: canManageEmployeesValue,
-      allowedSections,
-      dashboardPath,
-      isTeamLeader,
-    }),
-    [fullAccess, canViewProjectsValue, canManageClientsValue, canManageEmployeesValue, allowedSections, dashboardPath, isTeamLeader]
+    () => {
+      if (isClientPortal) {
+        const campaigns = Array.isArray(user?.campaigns) ? user.campaigns : []
+        return campaigns.map((campaign) => {
+          const key = campaign.campaignId || campaign.campaignName
+          return {
+            id: `campaign-${key}`,
+            label: campaign.campaignName || campaign.campaignId || 'Campaign',
+            type: 'link',
+            path: `/client-leads?campaign=${encodeURIComponent(key)}`,
+            campaignKey: key,
+          }
+        })
+      }
+      return getSidebarNav({
+        fullAccess,
+        canViewProjects: canViewProjectsValue,
+        canManageClients: canManageClientsValue,
+        canManageEmployees: canManageEmployeesValue,
+        allowedSections,
+        dashboardPath,
+        isTeamLeader,
+      })
+    },
+    [isClientPortal, user?.campaigns, fullAccess, canViewProjectsValue, canManageClientsValue, canManageEmployeesValue, allowedSections, dashboardPath, isTeamLeader]
   )
 
   const defaultExpanded = useMemo(() => {
@@ -118,7 +135,7 @@ const Sidebar = ({ isOpen = true, onToggle }) => {
     let refreshTimer = null
 
     const fetchPendingMyTasks = async ({ playAlert = false } = {}) => {
-      if (!user?._id) {
+      if (isClientPortal || !user?._id) {
         if (!cancelled) setPendingMyTasksCount(0)
         return
       }
@@ -156,8 +173,10 @@ const Sidebar = ({ isOpen = true, onToggle }) => {
     }
 
     // Initial badge load only — further updates come from Socket.IO.
-    fetchPendingMyTasks()
-    connectRealtimeSocket(user._id, { tenantId: getTenantId() })
+    if (!isClientPortal) {
+      fetchPendingMyTasks()
+      connectRealtimeSocket(user._id, { tenantId: getTenantId() })
+    }
     const unsubscribe = onTaskChanged((payload) => {
       const reason = String(payload?.reason || '')
       scheduleRefresh({ playAlert: reason === 'assigned' })
@@ -175,7 +194,7 @@ const Sidebar = ({ isOpen = true, onToggle }) => {
       unsubscribe()
       window.removeEventListener('focus', handleFocus)
     }
-  }, [user?._id])
+  }, [user?._id, isClientPortal])
 
   const toggleSection = (id) => {
     setExpanded((prev) => (prev[id] ? {} : { [id]: true }))
@@ -188,7 +207,7 @@ const Sidebar = ({ isOpen = true, onToggle }) => {
         key={child.id}
         type='button'
         onClick={() => navigate(child.path)}
-        className={`w-full flex items-center gap-2 py-2 rounded-lg text-sm transition-colors ${
+        className={`w-full flex cursor-pointer items-center gap-2 py-2 rounded-lg text-sm transition-colors ${
           active
             ? 'bg-[#2563EB] text-[#E5E7EB] hover:bg-[#3B82F6]'
             : 'text-[#94A3B8] hover:bg-[#111827] hover:text-[#E5E7EB]'
@@ -223,8 +242,12 @@ const Sidebar = ({ isOpen = true, onToggle }) => {
               className='flex cursor-pointer items-center gap-3 min-w-0 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6]'
               title='Dashboard'
             >
-              <div className='h-10 max-w-[140px] rounded-lg flex-shrink-0 overflow-hidden'>
-                <img src={Logo} alt='CRM' className='h-full w-auto object-contain' />
+              <div className='h-10 max-w-[140px] rounded-lg flex-shrink-0 overflow-hidden bg-white/95 px-1'>
+                {isClientPortal ? (
+                  <BrandLogo logoUrl={user?.logoUrl} alt={user?.name || 'Client logo'} className='h-full w-auto object-contain' />
+                ) : (
+                  <img src={Logo} alt='CRM' className='h-full w-auto object-contain' />
+                )}
               </div>
             </button>
             <button type='button' onClick={onToggle} className='p-2 rounded-lg hover:bg-[#111827] text-[#94A3B8] hover:text-[#E5E7EB] transition-colors flex-shrink-0' title='Collapse menu'>
@@ -242,20 +265,27 @@ const Sidebar = ({ isOpen = true, onToggle }) => {
         <div className='space-y-1'>
           {sections.map((section) => {
             if (section.type === 'link') {
-              const active = isPathActive(location.pathname, section.path)
+              const selectedCampaign = new URLSearchParams(location.search).get('campaign')
+              const active = section.campaignKey
+                ? location.pathname === '/client-leads' && selectedCampaign === section.campaignKey
+                : isPathActive(location.pathname, section.path)
               return (
                 <button
                   key={section.id}
                   type='button'
                   onClick={() => navigate(section.path)}
-                  className={`w-full flex items-center gap-3 py-2.5 rounded-lg transition-colors ${
+                  className={`w-full flex cursor-pointer items-center gap-3 py-2.5 rounded-lg transition-colors ${
                     active
                       ? 'bg-[#2563EB] text-[#E5E7EB] hover:bg-[#3B82F6]'
                       : 'text-[#E5E7EB] hover:bg-[#111827]'
                   } ${isOpen ? 'px-3' : 'px-2 justify-center'}`}
                   title={!isOpen ? section.label : undefined}
                 >
-                  <SidebarSectionIcon id={section.id} className='size-5 shrink-0' />
+                  {section.campaignKey ? (
+                    <span className={`size-2 rounded-full shrink-0 ${active ? 'bg-white' : 'bg-[#94A3B8]'}`} />
+                  ) : (
+                    <SidebarSectionIcon id={section.id} className='size-5 shrink-0' />
+                  )}
                   {isOpen && <span className='text-sm font-medium truncate'>{section.label}</span>}
                 </button>
               )
@@ -269,7 +299,7 @@ const Sidebar = ({ isOpen = true, onToggle }) => {
                 <button
                   type='button'
                   onClick={() => (isOpen ? toggleSection(section.id) : navigate(section.children[0]?.path))}
-                  className={`w-full flex items-center gap-3 py-2.5 rounded-lg transition-colors ${
+                  className={`w-full flex cursor-pointer items-center gap-3 py-2.5 rounded-lg transition-colors ${
                     groupActive ? 'text-[#E5E7EB]' : 'text-[#94A3B8] hover:bg-[#111827] hover:text-[#E5E7EB]'
                   } ${isOpen ? 'px-3' : 'px-2 justify-center'}`}
                   title={!isOpen ? section.label : undefined}
@@ -301,23 +331,25 @@ const Sidebar = ({ isOpen = true, onToggle }) => {
           </div>
         )}
         <div className='space-y-1'>
-          <button
-            type='button'
-            onClick={() => navigate('/settings')}
-            className={`w-full flex items-center gap-3 py-2.5 rounded-lg transition-colors ${
-              location.pathname === '/settings'
-                ? 'bg-[#2563EB] text-[#E5E7EB] hover:bg-[#3B82F6]'
-                : 'text-[#E5E7EB] hover:bg-[#111827]'
-            } ${isOpen ? 'px-3' : 'px-2 justify-center'}`}
-            title={!isOpen ? 'Settings' : undefined}
-          >
-            <span className='text-lg'><SettingsIcon /></span>
-            {isOpen && <span className='font-medium'>Settings</span>}
-          </button>
+          {!isClientPortal && (
+            <button
+              type='button'
+              onClick={() => navigate('/settings')}
+              className={`w-full flex cursor-pointer items-center gap-3 py-2.5 rounded-lg transition-colors ${
+                location.pathname === '/settings'
+                  ? 'bg-[#2563EB] text-[#E5E7EB] hover:bg-[#3B82F6]'
+                  : 'text-[#E5E7EB] hover:bg-[#111827]'
+              } ${isOpen ? 'px-3' : 'px-2 justify-center'}`}
+              title={!isOpen ? 'Settings' : undefined}
+            >
+              <span className='text-lg'><SettingsIcon /></span>
+              {isOpen && <span className='font-medium'>Settings</span>}
+            </button>
+          )}
           <button
             type='button'
             onClick={() => { logout(); navigate('/login') }}
-            className={`w-full flex items-center gap-3 py-2.5 text-[#94A3B8] hover:bg-red-900/40 hover:text-red-200 rounded-lg transition-colors ${isOpen ? 'px-3' : 'px-2 justify-center'}`}
+            className={`w-full flex cursor-pointer items-center gap-3 py-2.5 text-[#94A3B8] hover:bg-red-900/40 hover:text-red-200 rounded-lg transition-colors ${isOpen ? 'px-3' : 'px-2 justify-center'}`}
             title={!isOpen ? 'Logout' : undefined}
           >
             <span className='text-lg'><LogoutIcon /></span>
