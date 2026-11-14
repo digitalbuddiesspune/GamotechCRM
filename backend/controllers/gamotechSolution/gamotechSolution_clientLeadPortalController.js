@@ -4,6 +4,7 @@ import Lead from '../../models/gamotechSolution/gamotechSolution_lead.js';
 import SheetLead from '../../models/gamotechSolution/gamotechSolution_sheetLead.js';
 import Employee from '../../models/gamotechSolution/gamotechSolution_employee.js';
 import { signAuthToken } from '../../utils/jwtAuth.js';
+import { syncActiveCampaignLeads } from '../../utils/fetchActiveCampaignLeads.js';
 import { buildFormAnswers, descriptionWithoutImportedAnswers } from '../../utils/metaFormAnswers.js';
 
 export const CLIENT_LEAD_STATUSES = [
@@ -431,6 +432,79 @@ const loadPortalFromAuth = async (req) => {
     throw err;
   }
   return portal;
+};
+
+const metaCampaignIdFrom = (value) => String(value || '').trim().replace(/^c:/i, '');
+
+const resolveMetaCampaignId = async (campaign) => {
+  const direct = metaCampaignIdFrom(campaign?.campaignId);
+  if (/^\d{8,}$/.test(direct)) return direct;
+
+  const name = String(campaign?.campaignName || '').trim();
+  if (!name) return '';
+  const lead = await Lead.findOne({ campaignName: name, campaignId: { $ne: '' } }).select('campaignId').lean();
+  const fromLead = metaCampaignIdFrom(lead?.campaignId);
+  if (/^\d{8,}$/.test(fromLead)) return fromLead;
+  const sheet = await SheetLead.findOne({ campaignName: name, campaignId: { $ne: '' } }).select('campaignId').lean();
+  const fromSheet = metaCampaignIdFrom(sheet?.campaignId);
+  return /^\d{8,}$/.test(fromSheet) ? fromSheet : '';
+};
+
+export const fetchMyClientLeads = async (req, res) => {
+  try {
+    const portal = await loadPortalFromAuth(req);
+    const requestedId = String(req.body?.campaignId || '').trim();
+    const requestedName = String(req.body?.campaignName || '').trim();
+    let targets = portal.campaigns || [];
+    if (requestedId || requestedName) {
+      targets = targets.filter(
+        (campaign) =>
+          (requestedId && campaign.campaignId === requestedId) ||
+          (requestedName && campaign.campaignName === requestedName)
+      );
+      if (!targets.length) {
+        return res.status(403).json({ message: 'This campaign is not on your dashboard.' });
+      }
+    }
+    if (!targets.length) {
+      return res.status(400).json({ message: 'No campaign is assigned to this dashboard.' });
+    }
+
+    let created = 0;
+    let alreadyExists = 0;
+    const campaigns = [];
+    const errors = [];
+
+    for (const campaign of targets) {
+      const metaId = await resolveMetaCampaignId(campaign);
+      if (!metaId) {
+        errors.push(`${campaign.campaignName || 'This campaign'} is not linked to a Meta campaign.`);
+        continue;
+      }
+      try {
+        const result = await syncActiveCampaignLeads({ campaignId: metaId });
+        created += result.created || 0;
+        alreadyExists += result.alreadyExists || 0;
+        campaigns.push(...(result.campaigns || []));
+      } catch (error) {
+        errors.push(error.message || 'Could not fetch this campaign');
+      }
+    }
+
+    if (!campaigns.length && errors.length) {
+      return res.status(400).json({ message: errors[0], created, alreadyExists, campaigns });
+    }
+
+    const message = created
+      ? `Added ${created} new lead${created === 1 ? '' : 's'}.`
+      : 'No new leads. This campaign is already up to date.';
+
+    return res.status(200).json({ message, created, alreadyExists, campaigns });
+  } catch (error) {
+    return res.status(error.status || 500).json({
+      message: error.message || 'Failed to fetch new leads',
+    });
+  }
 };
 
 export const getMyClientLeads = async (req, res) => {

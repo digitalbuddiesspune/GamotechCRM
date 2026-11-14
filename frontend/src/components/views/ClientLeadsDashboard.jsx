@@ -41,9 +41,11 @@ const ClientLeadsDashboard = () => {
   const [query, setQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [savingId, setSavingId] = useState('')
+  const [fetching, setFetching] = useState(false)
+  const [fetchNotice, setFetchNotice] = useState(null)
 
-  const load = async () => {
-    setLoading(true)
+  const load = async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true)
     setError('')
     try {
       const res = await api.get('/client-portal/leads')
@@ -52,7 +54,28 @@ const ClientLeadsDashboard = () => {
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'Could not load your leads')
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
+    }
+  }
+
+  const fetchNewLeads = async () => {
+    if (!selectedSection || fetching) return
+    setFetching(true)
+    setFetchNotice(null)
+    setError('')
+    try {
+      const res = await api.post('/client-portal/leads/fetch', {
+        campaignId: selectedSection.campaignId || '',
+        campaignName: selectedSection.campaignName || '',
+      })
+      setFetchNotice(res.data || { message: 'Fetch finished.' })
+      await load({ silent: true })
+    } catch (err) {
+      setFetchNotice({
+        error: err.response?.data?.message || err.message || 'Could not fetch new leads',
+      })
+    } finally {
+      setFetching(false)
     }
   }
 
@@ -136,17 +159,39 @@ const ClientLeadsDashboard = () => {
 
   return (
     <div className='p-6 sm:p-8'>
-      <div className='mb-6 flex items-center gap-4'>
-        <div className='h-14 w-28 shrink-0 rounded-lg border border-gray-200 bg-white p-1.5 flex items-center justify-center'>
-          <BrandLogo logoUrl={user?.logoUrl} alt={user?.name || 'Client logo'} className='max-h-full max-w-full object-contain' />
+      <div className='mb-6 flex flex-wrap items-center justify-between gap-4'>
+        <div className='flex items-center gap-4 min-w-0'>
+          <div className='h-14 w-28 shrink-0 rounded-lg border border-gray-200 bg-white p-1.5 flex items-center justify-center'>
+            <BrandLogo logoUrl={user?.logoUrl} alt={user?.name || 'Client logo'} className='max-h-full max-w-full object-contain' />
+          </div>
+          <div className='min-w-0'>
+            <h1 className='text-2xl font-bold text-gray-900'>
+              {selectedSection?.campaignName || user?.name || 'Lead dashboard'}
+            </h1>
+            <p className='text-sm text-gray-600 mt-1'>Showing this campaign only. Choose another campaign from the sidebar.</p>
+          </div>
         </div>
-        <div>
-          <h1 className='text-2xl font-bold text-gray-900'>
-            {selectedSection?.campaignName || user?.name || 'Lead dashboard'}
-          </h1>
-          <p className='text-sm text-gray-600 mt-1'>Showing this campaign only. Choose another campaign from the sidebar.</p>
-        </div>
+        <button
+          type='button'
+          onClick={fetchNewLeads}
+          disabled={fetching || !selectedSection}
+          className='bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors cursor-pointer'
+        >
+          {fetching ? 'Fetching leads…' : 'Fetch new leads'}
+        </button>
       </div>
+
+      {fetchNotice ? (
+        <div
+          className={`mb-4 rounded-lg border px-4 py-3 text-sm ${
+            fetchNotice.error
+              ? 'bg-red-50 border-red-100 text-red-700'
+              : 'bg-emerald-50 border-emerald-100 text-emerald-800'
+          }`}
+        >
+          <p className='font-medium'>{fetchNotice.error || fetchNotice.message}</p>
+        </div>
+      ) : null}
 
       <div className='grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6'>
         {[

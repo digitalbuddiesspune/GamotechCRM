@@ -7,6 +7,7 @@ import {
   updateClientLeadPortal,
   deleteClientLeadPortal,
   getMyClientLeads,
+  fetchMyClientLeads,
   getMyClientLead,
   updateMyClientLead,
   saveMyClientLead,
@@ -21,6 +22,7 @@ router.put('/client-lead-portals/:id', updateClientLeadPortal);
 router.delete('/client-lead-portals/:id', deleteClientLeadPortal);
 
 router.get('/client-portal/leads', requireAuth, getMyClientLeads);
+router.post('/client-portal/leads/fetch', requireAuth, fetchMyClientLeads);
 router.get('/client-portal/leads/:source/:recordId', requireAuth, getMyClientLead);
 router.patch('/client-portal/leads', requireAuth, updateMyClientLead);
 router.put('/client-portal/leads/:source/:recordId', requireAuth, saveMyClientLead);
