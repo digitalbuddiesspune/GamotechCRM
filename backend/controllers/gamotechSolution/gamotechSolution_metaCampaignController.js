@@ -7,6 +7,7 @@ import {
   listCampaignsForAdAccounts,
   normalizeAdAccountId,
 } from '../../utils/metaGraphApi.js';
+import { syncActiveCampaignLeads } from '../../utils/fetchActiveCampaignLeads.js';
 import {
   getMetaTokenStorageInfo,
   inspectMetaAccessToken,
@@ -219,6 +220,19 @@ export const getMetaCampaigns = async (req, res) => {
     return res.status(error.status || 500).json({
       message: error.message || 'Failed to load Meta campaigns',
       details: error.details,
+    });
+  }
+};
+
+export const fetchActiveCampaignLeads = async (req, res) => {
+  try {
+    const campaignId = String(req.body?.campaignId || req.query?.campaignId || '').trim();
+    const result = await syncActiveCampaignLeads({ campaignId });
+    return res.status(200).json(result);
+  } catch (error) {
+    console.error('[gamotechSolution] Fetch active campaign leads error:', error?.message || error);
+    return res.status(error.status || 500).json({
+      message: error.message || 'Failed to fetch new leads',
     });
   }
 };

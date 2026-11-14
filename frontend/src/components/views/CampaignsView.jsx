@@ -36,26 +36,46 @@ const CampaignsView = () => {
   const [error, setError] = useState(null)
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState('created_desc')
+  const [fetchingId, setFetchingId] = useState('')
+  const [fetchNotice, setFetchNotice] = useState(null)
+
+  const load = async ({ silent = false } = {}) => {
+    try {
+      if (!silent) setLoading(true)
+      setError(null)
+      const params = selectedAdAccount ? { adAccount: selectedAdAccount } : {}
+      const res = await api.get('/meta/campaigns', { params })
+      setCampaigns(Array.isArray(res.data?.campaigns) ? res.data.campaigns : [])
+      setAdAccounts(Array.isArray(res.data?.adAccounts) ? res.data.adAccounts : [])
+      setMetaInfo(res.data?.meta || null)
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Failed to load Meta campaigns')
+      setMetaInfo(err.response?.data?.details || null)
+    } finally {
+      if (!silent) setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-        const params = selectedAdAccount ? { adAccount: selectedAdAccount } : {}
-        const res = await api.get('/meta/campaigns', { params })
-        setCampaigns(Array.isArray(res.data?.campaigns) ? res.data.campaigns : [])
-        setAdAccounts(Array.isArray(res.data?.adAccounts) ? res.data.adAccounts : [])
-        setMetaInfo(res.data?.meta || null)
-      } catch (err) {
-        setError(err.response?.data?.message || err.message || 'Failed to load Meta campaigns')
-        setMetaInfo(err.response?.data?.details || null)
-      } finally {
-        setLoading(false)
-      }
-    }
     load()
   }, [selectedAdAccount])
+
+  const fetchNewLeads = async (campaignId = '') => {
+    const key = campaignId || 'all'
+    try {
+      setFetchingId(key)
+      setFetchNotice(null)
+      const res = await api.post('/meta/campaigns/fetch-leads', campaignId ? { campaignId } : {})
+      setFetchNotice(res.data || { message: 'Fetch finished.' })
+      await load({ silent: true })
+    } catch (err) {
+      setFetchNotice({
+        error: err.response?.data?.message || err.message || 'Failed to fetch new leads',
+      })
+    } finally {
+      setFetchingId('')
+    }
+  }
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -131,17 +151,50 @@ const CampaignsView = () => {
         <div>
           <h1 className='text-2xl font-bold text-gray-900'>Meta Ads Campaigns</h1>
           <p className='text-gray-600 mt-1 text-sm'>
-            Loaded from Meta Graph API, with CRM lead counts from your webhook imports.
+            Loaded from Meta. Fetch new leads from campaigns that are active.
           </p>
         </div>
-        <button
-          type='button'
-          onClick={() => navigate('/leads')}
-          className='bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors'
-        >
-          View all leads
-        </button>
+        <div className='flex flex-wrap gap-2'>
+          <button
+            type='button'
+            onClick={() => fetchNewLeads()}
+            disabled={Boolean(fetchingId)}
+            className='bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors cursor-pointer'
+          >
+            {fetchingId === 'all' ? 'Fetching leads…' : 'Fetch new leads'}
+          </button>
+          <button
+            type='button'
+            onClick={() => navigate('/leads')}
+            className='bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors cursor-pointer'
+          >
+            View all leads
+          </button>
+        </div>
       </div>
+
+      {fetchNotice ? (
+        <div
+          className={`mb-4 rounded-lg border px-4 py-3 text-sm ${
+            fetchNotice.error
+              ? 'bg-red-50 border-red-100 text-red-700'
+              : 'bg-emerald-50 border-emerald-100 text-emerald-800'
+          }`}
+        >
+          <p className='font-medium'>{fetchNotice.error || fetchNotice.message}</p>
+          {Array.isArray(fetchNotice.campaigns) && fetchNotice.campaigns.some((row) => row.created) ? (
+            <ul className='mt-2 space-y-1'>
+              {fetchNotice.campaigns
+                .filter((row) => row.created)
+                .map((row) => (
+                  <li key={row.id}>
+                    {row.name}: {row.created} new
+                  </li>
+                ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className='grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6'>
         <div className='bg-white rounded-xl border border-gray-100 shadow-sm p-4'>
@@ -289,13 +342,25 @@ const CampaignsView = () => {
                   </div>
                 </div>
 
-                <button
-                  type='button'
-                  onClick={() => openCampaignLeads(campaign.id)}
-                  className='text-sm font-medium text-purple-700 hover:text-purple-900'
-                >
-                  View CRM leads for this campaign →
-                </button>
+                <div className='flex flex-wrap items-center gap-4'>
+                  {String(campaign.status || '').toUpperCase() === 'ACTIVE' ? (
+                    <button
+                      type='button'
+                      onClick={() => fetchNewLeads(campaign.id)}
+                      disabled={Boolean(fetchingId)}
+                      className='text-sm font-semibold text-blue-700 hover:text-blue-900 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer'
+                    >
+                      {fetchingId === campaign.id ? 'Fetching leads…' : 'Fetch new leads'}
+                    </button>
+                  ) : null}
+                  <button
+                    type='button'
+                    onClick={() => openCampaignLeads(campaign.id)}
+                    className='text-sm font-medium text-purple-700 hover:text-purple-900 cursor-pointer'
+                  >
+                    View CRM leads for this campaign →
+                  </button>
+                </div>
               </div>
             )
           })}

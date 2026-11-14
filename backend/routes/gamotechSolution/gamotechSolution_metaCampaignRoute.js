@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import {
+  fetchActiveCampaignLeads,
   getMetaCampaigns,
   getMetaTokenStatus,
   updateMetaToken,
@@ -9,6 +10,7 @@ const router = Router();
 
 /** Live Meta Ads campaigns via Graph API + CRM lead counts per campaign. */
 router.get('/meta/campaigns', getMetaCampaigns);
+router.post('/meta/campaigns/fetch-leads', fetchActiveCampaignLeads);
 router.get('/meta/token/status', getMetaTokenStatus);
 router.put('/meta/token', updateMetaToken);
 
